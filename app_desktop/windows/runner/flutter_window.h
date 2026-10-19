@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include "anchor_tracker.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.
@@ -34,8 +35,6 @@ class FlutterWindow : public Win32Window {
   // How close, in logical pixels, the cursor must come to a hit rect before
   // Dart is told where it is.
   static constexpr double kNearMargin = 60;
-  // Closest the anchor may come to a screen edge, in logical pixels.
-  static constexpr double kAnchorEdgeMargin = 16;
 
   // Answers the Dart side of the "charm/overlay" channel.
   void HandleOverlayCall(
@@ -45,6 +44,14 @@ class FlutterWindow : public Win32Window {
   // Makes the window click-through unless the cursor is over a hit rect, and
   // reports the cursor to Dart while it is near one.
   void CheckCursor();
+
+  // Puts the window's top centre (where the rope hangs from) on |anchor|.
+  // When the window the charm hangs from moved, tells Dart so the rope
+  // swings; when it jumped elsewhere, the charm simply goes along.
+  void OnAnchorChanged(POINT anchor, bool moved, bool hidden);
+
+  std::unique_ptr<AnchorTracker> anchor_tracker_;
+  bool hidden_ = false;
 
   std::vector<HitRect> hit_rects_;
   bool hold_interactive_ = false;

@@ -41,6 +41,14 @@ bool FlutterWindow::OnCreate() {
       });
   SetTimer(GetHandle(), kCursorTimer, kCursorIntervalMs, nullptr);
 
+  RECT window;
+  GetWindowRect(GetHandle(), &window);
+  const POINT anchor = {(window.left + window.right) / 2, window.top};
+  anchor_tracker_ = std::make_unique<AnchorTracker>(
+      GetHandle(), anchor, [this](POINT anchor, bool moved, bool hidden) {
+        OnAnchorChanged(anchor, moved, hidden);
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -84,30 +92,26 @@ void FlutterWindow::HandleOverlayCall(
     CheckCursor();
     result->Success();
   } else if (method == "moveBy") {
-    // Slides the window sideways by dx logical pixels, keeping its centre
-    // (the anchor) on the monitor. Returns the dx actually applied.
+    // Slides the anchor (and the window with it) along the edge it hangs
+    // from by dx logical pixels. Returns the dx actually applied.
     const auto* dx = std::get_if<double>(call.arguments());
     if (!dx) {
       result->Error("bad_args", "moveBy expects a double");
       return;
     }
-    HWND hwnd = GetHandle();
-    RECT window;
-    GetWindowRect(hwnd, &window);
-    MONITORINFO monitor = {sizeof(monitor)};
-    GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST),
-                   &monitor);
-    const double scale = GetDpiForWindow(hwnd) / 96.0;
-    const LONG half_width = (window.right - window.left) / 2;
-    const LONG margin = static_cast<LONG>(kAnchorEdgeMargin * scale);
-    const LONG min_left = monitor.rcMonitor.left + margin - half_width;
-    const LONG max_left = monitor.rcMonitor.right - margin - half_width;
-    LONG left = window.left + static_cast<LONG>(std::lround(*dx * scale));
-    left = std::clamp(left, min_left, max_left);
-    SetWindowPos(hwnd, nullptr, left, window.top, 0, 0,
-                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    result->Success(
-        flutter::EncodableValue((left - window.left) / scale));
+    const double scale = GetDpiForWindow(GetHandle()) / 96.0;
+    const LONG applied =
+        anchor_tracker_->SlideBy(static_cast<LONG>(std::lround(*dx * scale)));
+    result->Success(flutter::EncodableValue(applied / scale));
+  } else if (method == "setFollowActive") {
+    // Hang from the active window (true) or the top of the screen (false).
+    const auto* follow = std::get_if<bool>(call.arguments());
+    if (!follow) {
+      result->Error("bad_args", "setFollowActive expects a bool");
+      return;
+    }
+    anchor_tracker_->SetFollowActiveWindow(*follow);
+    result->Success();
   } else if (method == "quit") {
     PostMessage(GetHandle(), WM_CLOSE, 0, 0);
     result->Success();
@@ -116,9 +120,35 @@ void FlutterWindow::HandleOverlayCall(
   }
 }
 
+void FlutterWindow::OnAnchorChanged(POINT anchor, bool moved, bool hidden) {
+  HWND hwnd = GetHandle();
+  if (!hwnd) return;
+  if (hidden != hidden_) {
+    hidden_ = hidden;
+    ShowWindow(hwnd, hidden ? SW_HIDE : SW_SHOWNOACTIVATE);
+  }
+  RECT window;
+  GetWindowRect(hwnd, &window);
+  const LONG half_width = (window.right - window.left) / 2;
+  const LONG dx = anchor.x - (window.left + half_width);
+  const LONG dy = anchor.y - window.top;
+  if (dx == 0 && dy == 0) return;
+  SetWindowPos(hwnd, nullptr, anchor.x - half_width, anchor.y, 0, 0,
+               SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+  if (moved && overlay_channel_) {
+    const double scale = GetDpiForWindow(hwnd) / 96.0;
+    overlay_channel_->InvokeMethod(
+        "anchorMoved",
+        std::make_unique<flutter::EncodableValue>(flutter::EncodableList{
+            flutter::EncodableValue(dx / scale),
+            flutter::EncodableValue(dy / scale)}));
+  }
+}
+
 void FlutterWindow::CheckCursor() {
   HWND hwnd = GetHandle();
   if (!hwnd) return;
+  if (anchor_tracker_) anchor_tracker_->Validate();
   POINT point;
   GetCursorPos(&point);
   ScreenToClient(hwnd, &point);
@@ -161,6 +191,7 @@ void FlutterWindow::CheckCursor() {
 
 void FlutterWindow::OnDestroy() {
   if (GetHandle()) KillTimer(GetHandle(), kCursorTimer);
+  anchor_tracker_ = nullptr;
   overlay_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;

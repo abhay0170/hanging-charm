@@ -35,12 +35,40 @@ class _CharmOverlayState extends State<CharmOverlay>
   static const double _brushRadius = charmRadius + 2;
   static const double _brushShare = 0.5;
 
-  static const Size _menuSize = Size(150, 146);
+  static const Size _menuSize = Size(160, 176);
 
   late final _channel = OverlayChannel(
     onCursorNear: _brush,
     onCursorAway: _closeMenu,
+    onAnchorMoved: _onAnchorMoved,
   );
+
+  /// Hang from the window being worked in, or from the top of the screen.
+  bool _followWindow = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _channel.setFollowActive(_followWindow);
+  }
+
+  /// The window the charm hangs from moved, and this overlay moved with it.
+  /// Keep the rope where it was on screen and move the anchor by the same
+  /// amount, so the charm swings exactly as much as the window moved.
+  void _onAnchorMoved(Offset delta) {
+    final sim = _sim;
+    if (sim == null) return;
+    sim.shiftFrame(-delta.dx, -delta.dy);
+    sim.moveAnchor(
+        sim.anchorTargetX + delta.dx, sim.anchorTargetY + delta.dy);
+    _wake();
+  }
+
+  void _setFollowWindow(bool follow) {
+    _followWindow = follow;
+    _channel.setFollowActive(follow);
+    _closeMenu();
+  }
   final _repaint = ValueNotifier<int>(0);
   late final Ticker _ticker = createTicker(_onTick);
 
@@ -316,6 +344,8 @@ class _CharmOverlayState extends State<CharmOverlay>
             for (final style in RopeStyle.all)
               item(style.name, () => _setStyle(style),
                   selected: style.id == current),
+            item('Hang from window', () => _setFollowWindow(!_followWindow),
+                selected: _followWindow),
             item('Quit', _channel.quit),
           ],
         ),

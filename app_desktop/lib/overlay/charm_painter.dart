@@ -8,11 +8,18 @@ import 'package:flutter/rendering.dart';
 const double charmRadius = 22;
 const double ringRadius = 4;
 
-/// Centre of the charm body, which hangs below the rope's last particle.
-Offset charmCenter(RopeSim sim) {
+/// Centre of the charm body. The rope's last particle is the charm itself,
+/// so the bead you see swings exactly as far as the physics allows; hanging
+/// it below the rope's end would act as a longer lever and swing further.
+Offset charmCenter(RopeSim sim) => Offset(sim.charmX, sim.charmY);
+
+/// Distance from the charm's centre up to where the rope meets the ring.
+const double _ropeCut = charmRadius + ringRadius * 2;
+
+/// Unit vector from the charm's centre up toward where the rope enters it.
+Offset _upFromCharm(RopeSim sim) {
   final a = sim.charmAngle;
-  const d = charmRadius + ringRadius * 2;
-  return Offset(sim.charmX + math.sin(a) * d, sim.charmY + math.cos(a) * d);
+  return Offset(-math.sin(a), -math.cos(a));
 }
 
 /// Draws the anchor pin, the rope in its style, and a gold bead charm.
@@ -23,9 +30,17 @@ class CharmPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final points = [
-      for (var i = 0; i < sim.particleCount; i++) Offset(sim.x(i), sim.y(i)),
-    ];
+    // The rope ends at the jump ring on top of the charm; the particles
+    // inside the charm are not drawn.
+    final center = charmCenter(sim);
+    final ringTop = center + _upFromCharm(sim) * _ropeCut;
+    final points = <Offset>[];
+    for (var i = 0; i < sim.particleCount - 1; i++) {
+      final p = Offset(sim.x(i), sim.y(i));
+      if (i > 0 && (p - center).distance < _ropeCut) break;
+      points.add(p);
+    }
+    points.add(ringTop);
     switch (sim.style.id) {
       case 'gold_chain':
         _paintChain(canvas, points);
@@ -127,13 +142,11 @@ class CharmPainter extends CustomPainter {
   }
 
   void _paintCharm(Canvas canvas) {
-    final end = Offset(sim.charmX, sim.charmY);
-    final angle = sim.charmAngle;
     final center = charmCenter(sim);
 
     // Jump ring between the rope and the charm.
-    final ringCenter = Offset(end.dx + math.sin(angle) * ringRadius,
-        end.dy + math.cos(angle) * ringRadius);
+    final ringCenter =
+        center + _upFromCharm(sim) * (charmRadius + ringRadius);
     canvas.drawCircle(
       ringCenter,
       ringRadius,

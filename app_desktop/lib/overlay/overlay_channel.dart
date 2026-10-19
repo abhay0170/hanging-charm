@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 /// Only Windows implements it so far. Elsewhere every call is a no-op and
 /// the app runs without click-through.
 class OverlayChannel {
-  OverlayChannel({this.onCursorNear, this.onCursorAway}) {
+  OverlayChannel({this.onCursorNear, this.onCursorAway, this.onAnchorMoved}) {
     _channel.setMethodCallHandler(_handle);
   }
 
@@ -23,6 +23,10 @@ class OverlayChannel {
 
   /// The cursor left the area around every hit rect.
   final void Function()? onCursorAway;
+
+  /// The window the charm hangs from moved, and the overlay moved with it by
+  /// this many logical pixels. The rope should swing.
+  final void Function(Offset delta)? onAnchorMoved;
 
   bool _supported = true;
   List<Rect> _sentRects = const [];
@@ -59,6 +63,9 @@ class OverlayChannel {
     return applied is num ? applied.toDouble() : null;
   }
 
+  /// Hang from the active window (true) or the top of the screen (false).
+  Future<void> setFollowActive(bool follow) => _call('setFollowActive', follow);
+
   Future<void> quit() async {
     await _call('quit');
     if (!_supported) SystemNavigator.pop();
@@ -72,6 +79,10 @@ class OverlayChannel {
             (point[0]! as num).toDouble(), (point[1]! as num).toDouble()));
       case 'cursorAway':
         onCursorAway?.call();
+      case 'anchorMoved':
+        final delta = call.arguments as List<Object?>;
+        onAnchorMoved?.call(Offset(
+            (delta[0]! as num).toDouble(), (delta[1]! as num).toDouble()));
     }
     return null;
   }
