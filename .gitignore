@@ -1,0 +1,4 @@
+# Each Dart/Flutter project has its own .gitignore for build output.
+.DS_Store
+Thumbs.db
+*.log
