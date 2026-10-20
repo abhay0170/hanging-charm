@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "login_item.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -48,6 +49,7 @@ bool FlutterWindow::OnCreate() {
       GetHandle(), anchor, [this](POINT anchor, bool moved, bool hidden) {
         OnAnchorChanged(anchor, moved, hidden);
       });
+  tray_ = std::make_unique<TrayIcon>(GetHandle());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
@@ -112,6 +114,37 @@ void FlutterWindow::HandleOverlayCall(
     }
     anchor_tracker_->SetFollowActiveWindow(*follow);
     result->Success();
+  } else if (method == "setCharmVisible") {
+    const auto* visible = std::get_if<bool>(call.arguments());
+    if (!visible) {
+      result->Error("bad_args", "setCharmVisible expects a bool");
+      return;
+    }
+    user_visible_ = *visible;
+    UpdateVisibility();
+    result->Success();
+  } else if (method == "getAnchorFractions") {
+    result->Success(flutter::EncodableValue(std::vector<double>{
+        anchor_tracker_->window_fraction(),
+        anchor_tracker_->screen_fraction()}));
+  } else if (method == "setAnchorFractions") {
+    // [window fraction, screen fraction], restored from saved settings.
+    const auto* values = std::get_if<std::vector<double>>(call.arguments());
+    if (!values || values->size() != 2) {
+      result->Error("bad_args", "setAnchorFractions expects 2 doubles");
+      return;
+    }
+    anchor_tracker_->SetFractions((*values)[0], (*values)[1]);
+    result->Success();
+  } else if (method == "getLaunchAtLogin") {
+    result->Success(flutter::EncodableValue(login_item::IsEnabled()));
+  } else if (method == "setLaunchAtLogin") {
+    const auto* enabled = std::get_if<bool>(call.arguments());
+    if (!enabled) {
+      result->Error("bad_args", "setLaunchAtLogin expects a bool");
+      return;
+    }
+    result->Success(flutter::EncodableValue(login_item::SetEnabled(*enabled)));
   } else if (method == "quit") {
     PostMessage(GetHandle(), WM_CLOSE, 0, 0);
     result->Success();
@@ -120,12 +153,46 @@ void FlutterWindow::HandleOverlayCall(
   }
 }
 
+void FlutterWindow::UpdateVisibility() {
+  HWND hwnd = GetHandle();
+  if (!hwnd) return;
+  const bool show = user_visible_ && !fullscreen_hidden_;
+  if (show != (IsWindowVisible(hwnd) != FALSE)) {
+    ShowWindow(hwnd, show ? SW_SHOWNOACTIVATE : SW_HIDE);
+  }
+}
+
+void FlutterWindow::OnTrayCommand(TrayIcon::Command command) {
+  const char* name = nullptr;
+  switch (command) {
+    case TrayIcon::Command::kToggleLaunchAtLogin:
+      login_item::SetEnabled(!login_item::IsEnabled());
+      return;
+    case TrayIcon::Command::kToggleVisible:
+      name = "toggleVisible";
+      break;
+    case TrayIcon::Command::kToggleFollow:
+      name = "toggleFollow";
+      break;
+    case TrayIcon::Command::kQuit:
+      // Dart saves what it is holding, then asks to quit.
+      name = "quit";
+      break;
+    case TrayIcon::Command::kNone:
+      return;
+  }
+  if (overlay_channel_) {
+    overlay_channel_->InvokeMethod(
+        "trayCommand", std::make_unique<flutter::EncodableValue>(name));
+  }
+}
+
 void FlutterWindow::OnAnchorChanged(POINT anchor, bool moved, bool hidden) {
   HWND hwnd = GetHandle();
   if (!hwnd) return;
-  if (hidden != hidden_) {
-    hidden_ = hidden;
-    ShowWindow(hwnd, hidden ? SW_HIDE : SW_SHOWNOACTIVATE);
+  if (hidden != fullscreen_hidden_) {
+    fullscreen_hidden_ = hidden;
+    UpdateVisibility();
   }
   RECT window;
   GetWindowRect(hwnd, &window);
@@ -191,6 +258,7 @@ void FlutterWindow::CheckCursor() {
 
 void FlutterWindow::OnDestroy() {
   if (GetHandle()) KillTimer(GetHandle(), kCursorTimer);
+  tray_ = nullptr;
   anchor_tracker_ = nullptr;
   overlay_channel_ = nullptr;
   if (flutter_controller_) {
@@ -211,6 +279,19 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                                                       lparam);
     if (result) {
       return *result;
+    }
+  }
+
+  if (tray_) {
+    const TrayIcon::Command command =
+        tray_->HandleMessage(message, lparam, [this]() -> TrayIcon::State {
+          return {user_visible_,
+                  anchor_tracker_ && anchor_tracker_->follows_active_window(),
+                  login_item::IsEnabled()};
+        });
+    if (command != TrayIcon::Command::kNone) {
+      OnTrayCommand(command);
+      return 0;
     }
   }
 

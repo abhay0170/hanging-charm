@@ -37,6 +37,12 @@ class AnchorTracker {
   // a few times a second.
   void Validate();
 
+  // How far along a window's / the screen's top edge the pin sits (0..1),
+  // so it can be saved and restored.
+  double window_fraction() const { return window_fraction_; }
+  double screen_fraction() const { return screen_fraction_; }
+  void SetFractions(double window_fraction, double screen_fraction);
+
  private:
   // Where the anchor may sit: a span along a top edge.
   struct Edge {

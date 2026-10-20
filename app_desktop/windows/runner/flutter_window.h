@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "anchor_tracker.h"
+#include "tray_icon.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.
@@ -50,8 +51,17 @@ class FlutterWindow : public Win32Window {
   // swings; when it jumped elsewhere, the charm simply goes along.
   void OnAnchorChanged(POINT anchor, bool moved, bool hidden);
 
+  // Shows the charm unless the user hid it or a full-screen app is in front.
+  void UpdateVisibility();
+
+  // Acts on a pick from the tray menu. Launch at login is handled here;
+  // everything the app remembers goes to Dart, which saves it.
+  void OnTrayCommand(TrayIcon::Command command);
+
   std::unique_ptr<AnchorTracker> anchor_tracker_;
-  bool hidden_ = false;
+  std::unique_ptr<TrayIcon> tray_;
+  bool user_visible_ = true;
+  bool fullscreen_hidden_ = false;
 
   std::vector<HitRect> hit_rects_;
   bool hold_interactive_ = false;

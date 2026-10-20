@@ -10,7 +10,9 @@ charm_app/
 ├── packages/charm_physics/   rope physics, pure Dart, unit-tested
 └── app_desktop/              Flutter desktop app (Windows overlay implemented)
     ├── lib/overlay/          overlay widget, painter, native channel
-    └── windows/runner/       transparent click-through overlay window (C++)
+    ├── lib/settings/         saved settings (JSON, no plugins)
+    └── windows/runner/       overlay window, window tracking, tray icon,
+                              launch at login (C++)
 ```
 
 ## Run it (Windows)
@@ -33,6 +35,13 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
 - **Full-screen apps** (video, games, F11 browser) hide the charm
 - **Right-click the bead**: Thread / Gold Chain / Neon rope, Hang from
   window (on by default), Quit
+- **Tray icon** (next to the clock): Show charm, Hang from window, Launch at
+  login (off by default), Quit
+
+Your choices (rope, pin position, shown or hidden, hang from window) are
+saved to `%APPDATA%\Charm\settings.json` and come back on the next launch.
+Launch at login lives only in Windows' own startup list (`HKCU\...\Run`,
+also shown in Task Manager → Startup apps). Only one copy runs at a time.
 
 It starts hanging still. Every swing comes from you.
 
@@ -82,6 +91,9 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |
 | Minimised window: charm moves to the next window in front | ✅ |
+| Tray menu: show/hide, hang from window, launch at login on/off, quit | ✅ |
+| Settings saved and restored across a restart (rope, pin at 40%, screen top) | ✅ · 6 settings tests (defaults, round trip, batched writes, damaged file, bad values) |
+| Second copy exits, one charm only | ✅ |
 | CPU at rest (charm asleep) | ✅ ~0.4–1.2% of one core on the screen edge · ⚠️ 1.25% while attached to a busy window (target < 1%) |
 | CPU while swinging briskly (60 fps) | ⚠️ ~35–75% of one core depending on machine state (≈3–6% of the 12-core CPU), only for the first few seconds of a swing |
 | CPU while gently swaying (30 fps) | 24% of one core, was 37% at 60 fps (−35%, 4 alternating runs) |

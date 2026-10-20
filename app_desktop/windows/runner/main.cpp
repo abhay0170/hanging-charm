@@ -14,6 +14,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     CreateAndAttachConsole();
   }
 
+  // One charm at a time: a second copy (say, started again while launch at
+  // login already started one) quietly exits. The mutex lives until exit.
+  HANDLE single_instance =
+      CreateMutexW(nullptr, FALSE, L"Local\\CharmApp.SingleInstance");
+  if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (single_instance) CloseHandle(single_instance);
+    return EXIT_SUCCESS;
+  }
+
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

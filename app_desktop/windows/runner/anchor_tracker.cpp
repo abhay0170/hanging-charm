@@ -101,6 +101,13 @@ void AnchorTracker::Validate() {
   if (target_ && !IsUsable(target_)) SetTarget(nullptr);
 }
 
+void AnchorTracker::SetFractions(double window_fraction,
+                                 double screen_fraction) {
+  window_fraction_ = std::clamp(window_fraction, 0.0, 1.0);
+  screen_fraction_ = std::clamp(screen_fraction, 0.0, 1.0);
+  Update(false);
+}
+
 // static
 void CALLBACK AnchorTracker::OnWinEvent(HWINEVENTHOOK, DWORD event,
                                         HWND hwnd, LONG id_object,

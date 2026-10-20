@@ -12,7 +12,12 @@ import 'package:flutter/services.dart';
 /// Only Windows implements it so far. Elsewhere every call is a no-op and
 /// the app runs without click-through.
 class OverlayChannel {
-  OverlayChannel({this.onCursorNear, this.onCursorAway, this.onAnchorMoved}) {
+  OverlayChannel({
+    this.onCursorNear,
+    this.onCursorAway,
+    this.onAnchorMoved,
+    this.onTrayCommand,
+  }) {
     _channel.setMethodCallHandler(_handle);
   }
 
@@ -27,6 +32,10 @@ class OverlayChannel {
   /// The window the charm hangs from moved, and the overlay moved with it by
   /// this many logical pixels. The rope should swing.
   final void Function(Offset delta)? onAnchorMoved;
+
+  /// Something was picked from the tray menu: `toggleVisible`,
+  /// `toggleFollow` or `quit`. (Launch at login is handled natively.)
+  final void Function(String command)? onTrayCommand;
 
   bool _supported = true;
   List<Rect> _sentRects = const [];
@@ -66,6 +75,31 @@ class OverlayChannel {
   /// Hang from the active window (true) or the top of the screen (false).
   Future<void> setFollowActive(bool follow) => _call('setFollowActive', follow);
 
+  /// Shows or hides the charm (a full-screen app hides it regardless).
+  Future<void> setCharmVisible(bool visible) =>
+      _call('setCharmVisible', visible);
+
+  /// Where along a window's and the screen's top edge the pin sits (0..1).
+  Future<(double, double)?> getAnchorFractions() async {
+    final values = await _call('getAnchorFractions');
+    if (values is! List || values.length != 2) return null;
+    return (
+      (values[0] as num).toDouble(),
+      (values[1] as num).toDouble(),
+    );
+  }
+
+  Future<void> setAnchorFractions(double window, double screen) =>
+      _call('setAnchorFractions', Float64List.fromList([window, screen]));
+
+  /// Whether the app starts when the user signs in.
+  Future<bool> getLaunchAtLogin() async =>
+      await _call('getLaunchAtLogin') == true;
+
+  /// Returns false if the system refused.
+  Future<bool> setLaunchAtLogin(bool enabled) async =>
+      await _call('setLaunchAtLogin', enabled) == true;
+
   Future<void> quit() async {
     await _call('quit');
     if (!_supported) SystemNavigator.pop();
@@ -79,6 +113,8 @@ class OverlayChannel {
             (point[0]! as num).toDouble(), (point[1]! as num).toDouble()));
       case 'cursorAway':
         onCursorAway?.call();
+      case 'trayCommand':
+        onTrayCommand?.call(call.arguments as String);
       case 'anchorMoved':
         final delta = call.arguments as List<Object?>;
         onAnchorMoved?.call(Offset(

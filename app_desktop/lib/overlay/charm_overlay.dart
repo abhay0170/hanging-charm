@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../settings/settings_store.dart';
 import 'charm_painter.dart';
 import 'overlay_channel.dart';
 
@@ -17,7 +18,10 @@ enum _Drag { none, charm, anchor }
 /// Nothing here runs while the charm is at rest: the frame loop stops when
 /// the rope sleeps, and the native window decides click-through by itself.
 class CharmOverlay extends StatefulWidget {
-  const CharmOverlay({super.key});
+  const CharmOverlay({super.key, required this.settings});
+
+  /// What the user chose last time; changes made here are saved back.
+  final SettingsStore settings;
 
   @override
   State<CharmOverlay> createState() => _CharmOverlayState();
@@ -41,6 +45,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     onCursorNear: _brush,
     onCursorAway: _closeMenu,
     onAnchorMoved: _onAnchorMoved,
+    onTrayCommand: _onTrayCommand,
   );
 
   /// Benchmark builds (`--dart-define=BENCH_SWING=true`) start the charm
@@ -48,13 +53,45 @@ class _CharmOverlayState extends State<CharmOverlay> {
   /// see the same swing every run. Normal builds start still.
   static const _benchSwing = bool.fromEnvironment('BENCH_SWING');
 
-  /// Hang from the window being worked in, or from the top of the screen.
-  bool _followWindow = !_benchSwing;
+  SettingsStore get _settings => widget.settings;
 
   @override
   void initState() {
     super.initState();
-    _channel.setFollowActive(_followWindow);
+    // Put everything back the way the user left it.
+    final s = _settings.value;
+    _channel.setAnchorFractions(
+        s.windowAnchorFraction, s.screenAnchorFraction);
+    _channel.setFollowActive(!_benchSwing && s.followWindow);
+    _channel.setCharmVisible(s.charmVisible);
+  }
+
+  void _onTrayCommand(String command) {
+    switch (command) {
+      case 'toggleVisible':
+        final visible = !_settings.value.charmVisible;
+        _settings.update((s) => s.copyWith(charmVisible: visible));
+        _channel.setCharmVisible(visible);
+      case 'toggleFollow':
+        _setFollowWindow(!_settings.value.followWindow);
+      case 'quit':
+        _quit();
+    }
+  }
+
+  /// Saves anything still waiting to be written, then closes the app.
+  Future<void> _quit() async {
+    await _settings.save();
+    await _channel.quit();
+  }
+
+  /// Remembers where the pin was left, after dragging it.
+  Future<void> _savePinPosition() async {
+    final fractions = await _channel.getAnchorFractions();
+    if (fractions == null) return;
+    _settings.update((s) => s.copyWith(
+        windowAnchorFraction: fractions.$1,
+        screenAnchorFraction: fractions.$2));
   }
 
   /// The window the charm hangs from moved, and this overlay moved with it.
@@ -70,7 +107,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   }
 
   void _setFollowWindow(bool follow) {
-    _followWindow = follow;
+    _settings.update((s) => s.copyWith(followWindow: follow));
     _channel.setFollowActive(follow);
     _closeMenu();
   }
@@ -107,6 +144,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   RopeSim _simFor(Size size) {
     // Starts hanging still: every swing comes from the user.
     return _sim ??= RopeSim(
+      style: _settings.value.ropeStyle,
       anchorX: size.width / 2,
       anchorY: 0,
       startAngle: _benchSwing ? 35 * math.pi / 180 : 0,
@@ -349,6 +387,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void _onPointerUp(PointerEvent e) {
     if (_drag == _Drag.none) return;
     if (_drag == _Drag.charm) _sim?.release();
+    if (_drag == _Drag.anchor) _savePinPosition();
     _drag = _Drag.none;
     _channel.holdInteractive(false);
     _wake();
@@ -376,6 +415,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   void _setStyle(RopeStyle style) {
     _sim?.style = style;
+    _settings.update((s) => s.copyWith(ropeStyleId: style.id));
     _closeMenu();
     _wake();
   }
@@ -383,6 +423,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   Widget _buildMenu() {
     final rect = _menuRect!;
     final current = _sim?.style.id;
+    final following = _settings.value.followWindow;
     Widget item(String label, VoidCallback onTap, {bool selected = false}) {
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -416,9 +457,9 @@ class _CharmOverlayState extends State<CharmOverlay> {
             for (final style in RopeStyle.all)
               item(style.name, () => _setStyle(style),
                   selected: style.id == current),
-            item('Hang from window', () => _setFollowWindow(!_followWindow),
-                selected: _followWindow),
-            item('Quit', _channel.quit),
+            item('Hang from window', () => _setFollowWindow(!following),
+                selected: following),
+            item('Quit', _quit),
           ],
         ),
       ),
