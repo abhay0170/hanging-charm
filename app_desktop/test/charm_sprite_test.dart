@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:charm_desktop/charms/charm.dart';
 import 'package:charm_desktop/charms/charm_sprite.dart';
+import 'package:charm_desktop/charms/user_charms.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,6 +32,26 @@ void main() {
       expect(sprite.image.width, greaterThan(charm.size * 2),
           reason: '${charm.id}: image drawn at 2x');
     }
+  });
+
+  test('a charm made by the user draws from their charms folder', () async {
+    final dir = Directory.systemTemp.createTempSync('charm_sprite_mine_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    // A small 20 x 30 PNG, standing in for a saved photo charm.
+    final recorder = ui.PictureRecorder();
+    ui.Canvas(recorder).drawRect(const ui.Rect.fromLTWH(0, 0, 20, 30),
+        ui.Paint()..color = const ui.Color(0xFF3366FF));
+    final image = await recorder.endRecording().toImage(20, 30);
+    final png = (await image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+    final mine = UserCharms(dir);
+    final charm = mine.add(name: 'Mine', png: png, size: 40);
+    final sprite =
+        await CharmSprite.draw(charm, 1, _DiskBundle(), userCharms: mine);
+    expect(sprite.charm.id, charm.id);
+    expect(sprite.artSize.width, 40);
+    expect(sprite.artSize.height, closeTo(60, 0.01)); // 2 x 3 proportions
   });
 
   test('a charm whose artwork is missing shows the bead instead', () async {

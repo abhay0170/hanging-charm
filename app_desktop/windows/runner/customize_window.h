@@ -6,6 +6,7 @@
 #include <flutter/method_channel.h>
 
 #include <memory>
+#include <string>
 
 #include "win32_window.h"
 
@@ -36,6 +37,9 @@ class CustomizeWindow : public Win32Window {
   void HandleCall(
       const flutter::MethodCall<flutter::EncodableValue>& call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  // Shows the Windows "Open" dialog for pictures. Empty if cancelled.
+  std::wstring PickImage();
 
   flutter::DartProject project_;
   std::unique_ptr<flutter::FlutterViewController> controller_;

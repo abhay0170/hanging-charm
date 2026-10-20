@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../charms/charm.dart';
+import '../charms/user_charms.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
+import 'photo_charm_editor.dart';
 import 'rope_preview.dart';
 import 'welcome_flow.dart';
 
@@ -75,6 +77,63 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
 
   int _tab = 0;
 
+  final _userCharms = UserCharms.standard();
+
+  /// The built-in charms plus the user's own, refreshed after they make or
+  /// delete one.
+  late CharmCatalog _catalog =
+      widget.catalog.withUserCharms(_userCharms.load());
+
+  void _refreshCatalog() => setState(
+      () => _catalog = widget.catalog.withUserCharms(_userCharms.load()));
+
+  /// Pick a photo, design the charm, save it, and hang it.
+  Future<void> _newFromPhoto() async {
+    final path = await widget.channel.pickImage();
+    if (path == null || !mounted) return;
+    final photo = await loadPhoto(path);
+    if (!mounted) return;
+    if (photo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('That picture couldn’t be opened. '
+              'Try a PNG, JPEG, WebP or BMP.')));
+      return;
+    }
+    final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
+        builder: (_) =>
+            PhotoCharmEditor(photo: photo, userCharms: _userCharms)));
+    photo.dispose();
+    if (charm == null || !mounted) return;
+    _refreshCatalog();
+    widget.channel.update({'charm': charm.id});
+  }
+
+  Future<void> _delete(Charm charm) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete “${charm.name}”?'),
+        content: const Text('It will be removed from your charms. The photo '
+            'you made it from isn’t touched.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // Take it down first if it is the one hanging.
+    if (widget.channel.settings.value?.charmId == charm.id) {
+      await widget.channel.update({'charm': Charm.goldBead.id});
+    }
+    _userCharms.delete(charm.id);
+    _refreshCatalog();
+  }
+
   @override
   Widget build(BuildContext context) {
     final channel = widget.channel;
@@ -125,11 +184,13 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                     return switch (_tab) {
                       0 => _LibraryPage(
                           settings: settings,
-                          catalog: widget.catalog,
-                          channel: channel),
+                          catalog: _catalog,
+                          channel: channel,
+                          onNewFromPhoto: _newFromPhoto,
+                          onDelete: _delete),
                       1 => _RopesPage(
                           settings: settings,
-                          catalog: widget.catalog,
+                          catalog: _catalog,
                           channel: channel),
                       2 => _SettingsPage(settings: settings, channel: channel),
                       _ => const _AboutPage(),
@@ -261,53 +322,135 @@ class _LibraryPage extends StatelessWidget {
     required this.settings,
     required this.catalog,
     required this.channel,
+    required this.onNewFromPhoto,
+    required this.onDelete,
   });
 
   final AppSettings settings;
   final CharmCatalog catalog;
   final CustomizeChannel channel;
+  final VoidCallback onNewFromPhoto;
+  final ValueChanged<Charm> onDelete;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     // An unknown saved charm shows as the bead, so mark the bead chosen.
     final chosen = catalog.charmFor(settings.charmId).id;
+    final mine = [
+      for (final c in catalog.collections)
+        if (c.id == CharmCatalog.userCollectionId) ...c.charms,
+    ];
+
+    Widget section(String name, String description, List<Widget> cards) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionTitle(name),
+            if (description.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(description,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ),
+            Wrap(spacing: 12, runSpacing: 12, children: cards),
+            const SizedBox(height: 24),
+          ],
+        );
+
+    Widget card(Charm charm) => _ChoiceCard(
+          picture: Padding(
+            padding: const EdgeInsets.all(18),
+            child: CharmArt(charm: charm),
+          ),
+          title: charm.name,
+          caption: charm.description,
+          selected: charm.id == chosen,
+          onTap: () => channel.update({'charm': charm.id}),
+        );
+
     return _Page(
       title: 'Library',
       subtitle: 'The charm that hangs on your screen. '
           '${catalog.all.length} to choose from.',
       children: [
-        for (final collection in catalog.collections) ...[
-          _SectionTitle(collection.name),
-          if (collection.description.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(collection.description,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant)),
-            ),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final charm in collection.charms)
-                _ChoiceCard(
-                  picture: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: CharmArt(charm: charm),
+        section(
+          'My charms',
+          'Made by you, from your own photos. They stay on this computer.',
+          [
+            _NewCharmCard(onTap: onNewFromPhoto),
+            for (final charm in mine)
+              Stack(
+                children: [
+                  card(charm),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: IconButton(
+                      tooltip: 'Delete',
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      onPressed: () => onDelete(charm),
+                    ),
                   ),
-                  title: charm.name,
-                  caption: charm.description,
-                  selected: charm.id == chosen,
-                  onTap: () => channel.update({'charm': charm.id}),
-                ),
+                ],
+              ),
+          ],
+        ),
+        for (final collection in catalog.collections)
+          if (collection.id != CharmCatalog.userCollectionId)
+            section(collection.name, collection.description,
+                [for (final charm in collection.charms) card(charm)]),
+      ],
+    );
+  }
+}
+
+/// The card that starts a new charm from a photo.
+class _NewCharmCard extends StatelessWidget {
+  const _NewCharmCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 172,
+      height: 222,
+      child: Material(
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: scheme.primary.withValues(alpha: 0.6)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_photo_alternate_outlined,
+                  size: 36, color: scheme.primary),
+              const SizedBox(height: 10),
+              Text('New from a photo',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Put someone, or something, in a frame.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }

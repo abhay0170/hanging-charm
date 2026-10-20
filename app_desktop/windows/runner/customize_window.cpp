@@ -1,6 +1,7 @@
 #include "customize_window.h"
 
 #include <flutter/standard_method_codec.h>
+#include <shobjidl.h>
 
 #include <optional>
 #include <string>
@@ -8,8 +9,54 @@
 #include "app_messages.h"
 #include "login_item.h"
 
+namespace {
+
+std::string ToUtf8(const std::wstring& wide) {
+  if (wide.empty()) return {};
+  const int size = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
+                                       static_cast<int>(wide.size()), nullptr,
+                                       0, nullptr, nullptr);
+  std::string utf8(size, '\0');
+  WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()),
+                      utf8.data(), size, nullptr, nullptr);
+  return utf8;
+}
+
+}  // namespace
+
 CustomizeWindow::CustomizeWindow(const flutter::DartProject& project)
     : project_(project) {}
+
+std::wstring CustomizeWindow::PickImage() {
+  IFileOpenDialog* dialog = nullptr;
+  if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr,
+                              CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
+    return {};
+  }
+  const COMDLG_FILTERSPEC filters[] = {
+      {L"Pictures", L"*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif"},
+  };
+  dialog->SetFileTypes(ARRAYSIZE(filters), filters);
+  dialog->SetTitle(L"Choose a photo for your charm");
+  DWORD options = 0;
+  dialog->GetOptions(&options);
+  dialog->SetOptions(options | FOS_FILEMUSTEXIST | FOS_FORCEFILESYSTEM);
+
+  std::wstring path;
+  if (SUCCEEDED(dialog->Show(GetHandle()))) {
+    IShellItem* item = nullptr;
+    if (SUCCEEDED(dialog->GetResult(&item))) {
+      PWSTR chosen = nullptr;
+      if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &chosen))) {
+        path = chosen;
+        CoTaskMemFree(chosen);
+      }
+      item->Release();
+    }
+  }
+  dialog->Release();
+  return path;
+}
 
 CustomizeWindow::~CustomizeWindow() {}
 
@@ -65,6 +112,15 @@ void CustomizeWindow::HandleCall(
       return;
     }
     result->Success(flutter::EncodableValue(login_item::SetEnabled(*enabled)));
+  } else if (method == "pickImage") {
+    // The standard Windows "Open" dialog, images only. Returns the chosen
+    // file's path, or null if the person cancels.
+    const std::wstring path = PickImage();
+    if (path.empty()) {
+      result->Success();
+    } else {
+      result->Success(flutter::EncodableValue(ToUtf8(path)));
+    }
   } else if (method == "close") {
     PostMessage(GetHandle(), WM_CLOSE, 0, 0);
     result->Success();

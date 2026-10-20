@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../support/app_log.dart';
 import 'charm.dart';
+import 'user_charms.dart';
 
 /// A charm's artwork drawn once into an image at the screen's pixel
 /// density, with a soft shadow in its own shape. Each frame only places and
@@ -40,10 +41,11 @@ class CharmSprite {
 
   /// The sprite for [charm] at [devicePixelRatio], drawn once and kept.
   static Future<CharmSprite> load(Charm charm, double devicePixelRatio,
-      {AssetBundle? bundle}) {
+      {AssetBundle? bundle, UserCharms? userCharms}) {
     return _cache.putIfAbsent((charm.id, devicePixelRatio), () async {
       try {
-        return await _draw(charm, devicePixelRatio, bundle ?? rootBundle);
+        return await _draw(charm, devicePixelRatio, bundle ?? rootBundle,
+            userCharms: userCharms);
       } on Object catch (error, stack) {
         // Missing or broken artwork: note why, forget the failure so a fixed
         // file can load later, and show the bead meanwhile.
@@ -92,22 +94,29 @@ class CharmSprite {
   /// Draws [charm] without the bead fallback, so failures surface.
   @visibleForTesting
   static Future<CharmSprite> draw(
-          Charm charm, double dpr, AssetBundle bundle) =>
-      _draw(charm, dpr, bundle);
+          Charm charm, double dpr, AssetBundle bundle,
+          {UserCharms? userCharms}) =>
+      _draw(charm, dpr, bundle, userCharms: userCharms);
 
   static Future<CharmSprite> _draw(
-      Charm charm, double dpr, AssetBundle bundle) async {
+      Charm charm, double dpr, AssetBundle bundle,
+      {UserCharms? userCharms}) async {
     if (charm.isBuiltIn) return goldBead(dpr);
-    final path = 'assets/charms/${charm.art}';
     // Read the file here, so a missing one fails in this function rather
-    // than inside the SVG library's own loading.
-    final data = await bundle.load(path);
+    // than inside the SVG library's own loading. The user's own charms come
+    // from their charms folder, the rest from the app's assets.
+    final Uint8List bytes;
+    if (charm.isUser) {
+      bytes = await (userCharms ?? UserCharms.standard())
+          .fileFor(charm)
+          .readAsBytes();
+    } else {
+      final data = await bundle.load('assets/charms/${charm.art}');
+      bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }
 
-    if (path.toLowerCase().endsWith('.svg')) {
-      final info = await vg.loadPicture(
-          SvgBytesLoader(data.buffer.asUint8List(
-              data.offsetInBytes, data.lengthInBytes)),
-          null);
+    if (charm.art.toLowerCase().endsWith('.svg')) {
+      final info = await vg.loadPicture(SvgBytesLoader(bytes), null);
       try {
         final source = info.size;
         final art = Size(charm.size, charm.size * source.height / source.width);
@@ -120,8 +129,7 @@ class CharmSprite {
       }
     }
 
-    final codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+    final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();
     final png = frame.image;
     try {

@@ -54,6 +54,9 @@ class CustomizeChannel {
 
   Future<void> close() => _channel.invokeMethod<void>('close');
 
+  /// Asks the person to choose a picture. Null if they cancel.
+  Future<String?> pickImage() => _channel.invokeMethod<String>('pickImage');
+
   /// False if the charm isn't running.
   Future<bool> _toCharm(Map<String, Object?> message) async =>
       await _channel.invokeMethod<bool>('toCharm', jsonEncode(message)) ??

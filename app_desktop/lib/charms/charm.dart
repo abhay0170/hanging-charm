@@ -45,6 +45,22 @@ class Charm {
 
   bool get isBuiltIn => art.startsWith('builtin:');
 
+  /// Made by the user: `user:<file>.png`, a file in their charms folder.
+  bool get isUser => art.startsWith(userArtPrefix);
+
+  static const userArtPrefix = 'user:';
+  static final _userArt = RegExp(r'^user:[A-Za-z0-9_-]+\.png$');
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'art': art,
+        'size': size,
+        'mass': mass,
+        'hang': [hang.dx, hang.dy],
+      };
+
   /// The polished bead the app has always had, drawn in code.
   static const goldBead = Charm(
     id: 'gold_bead',
@@ -95,6 +111,9 @@ class Charm {
 
   static bool _artIsUsable(String art) {
     if (art == goldBead.art) return true;
+    // A user charm's art is a bare file name in their charms folder, never
+    // a path, so an entry can't point anywhere else on disk.
+    if (art.startsWith(userArtPrefix)) return _userArt.hasMatch(art);
     final lower = art.toLowerCase();
     return (lower.endsWith('.svg') || lower.endsWith('.png')) &&
         !art.contains('..');
@@ -188,6 +207,25 @@ class CharmCatalog {
       return CharmCatalog.builtIn();
     }
   }
+
+  /// This catalog with the user's own charms in front, as "My charms".
+  CharmCatalog withUserCharms(List<Charm> mine) {
+    final builtIn = collections.where((c) => c.id != userCollectionId);
+    final ids = {for (final c in builtIn) for (final ch in c.charms) ch.id};
+    final own = [for (final ch in mine) if (!ids.contains(ch.id)) ch];
+    return CharmCatalog([
+      if (own.isNotEmpty)
+        CharmCollection(
+          id: userCollectionId,
+          name: 'My charms',
+          description: 'Made by you, from your own photos.',
+          charms: own,
+        ),
+      ...builtIn,
+    ]);
+  }
+
+  static const userCollectionId = 'mine';
 
   List<Charm> get all => [for (final c in collections) ...c.charms];
 

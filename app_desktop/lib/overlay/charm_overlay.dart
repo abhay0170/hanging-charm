@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 
 import '../charms/charm.dart';
 import '../charms/charm_sprite.dart';
+import '../charms/user_charms.dart';
 import '../customize/protocol.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
@@ -123,6 +124,19 @@ class _CharmOverlayState extends State<CharmOverlay> {
     }
   }
 
+  /// The built-in charms plus the user's own (made in Customize).
+  late CharmCatalog _catalog =
+      widget.catalog.withUserCharms(UserCharms.standard().load());
+
+  /// The charm with [id]. One not seen before was probably just made in
+  /// Customize, so the user's charms are read again before giving up.
+  Charm _charmFor(String id) {
+    if (_catalog.charmFor(id).id != id) {
+      _catalog = widget.catalog.withUserCharms(UserCharms.standard().load());
+    }
+    return _catalog.charmFor(id);
+  }
+
   /// The charm the user last asked for; a slower earlier load must not
   /// replace it when it finishes.
   String? _wantedCharm;
@@ -131,7 +145,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   /// Hangs the charm with [id]: its artwork and its weight. The old charm
   /// stays up until the new artwork is ready, so nothing flickers.
   Future<void> _showCharm(String id) async {
-    final charm = widget.catalog.charmFor(id);
+    final charm = _charmFor(id);
     _wantedCharm = charm.id;
     final dpr = _dpr;
     if (dpr == null) return; // Before the first build; build asks again.
@@ -247,7 +261,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     // Starts hanging still: every swing comes from the user.
     return _sim ??= RopeSim(
       style: _settings.value.ropeStyle,
-      charmMass: widget.catalog.charmFor(_settings.value.charmId).mass,
+      charmMass: _charmFor(_settings.value.charmId).mass,
       anchorX: size.width / 2,
       anchorY: 0,
       startAngle: _benchSwing ? 35 * math.pi / 180 : 0,

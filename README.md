@@ -38,6 +38,13 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
 - **Full-screen apps** (video, games, F11 browser) hide the charm
 - **Right-click the bead**: Customize…, Hang from window (on by default),
   Quit
+- **Charms from your photos** (Customize → Library → My charms → New from
+  a photo): pick a PNG, JPEG, WebP, BMP or GIF in the Windows file dialog,
+  then choose a frame (circle, rounded square, heart, oval) and finish (gold,
+  silver, rose gold, black), drag and zoom the photo, name it, and save. It
+  hangs at once. Saved charms live in `%APPDATA%\Charm\charms\` (one PNG
+  each plus `my_charms.json`) and can be deleted from the Library. The
+  original photo is never copied or changed.
 - **13 charms** in three collections (Classic, Luck, Nature), chosen in
   Customize → Library. Each has its own size, weight and hang point.
   These are simple original placeholders. See "Adding charms" below.
@@ -159,6 +166,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Light (3) and heavy (30) charms on every rope never swing past the let-go; a weight change doesn't move the charm | ✅ |
 | Welcome opens by itself on first launch (about 5 s after start), shows 3 steps, and is marked shown at once | ✅ |
 | Stats consent: off by default, ID only on opt-in and deleted on opt-out, fixed field list (6 tests) | ✅ · nothing is sent (no server yet) |
+| Photo charms: Windows file dialog → editor → saved PNG → hangs live on the real rope → listed in My charms → deleted (switches to the bead first) | ✅ |
+| Photo charm tests: photo always covers the frame, PNG size and transparency per shape, storage round trip, unsafe or missing entries ignored (11) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |
