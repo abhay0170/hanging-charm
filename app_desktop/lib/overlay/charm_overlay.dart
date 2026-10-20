@@ -41,7 +41,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
   static const double _brushRadius = charmRadius + 2;
   static const double _brushShare = 0.5;
 
-  static const Size _menuSize = Size(160, 206);
+  /// Customize…, Hang from window, Quit. Ropes are chosen in Customize.
+  static const Size _menuSize = Size(160, 106);
 
   late final _channel = OverlayChannel(
     onCursorNear: _brush,
@@ -471,15 +472,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _syncHitRects();
   }
 
-  void _setStyle(RopeStyle style) {
-    _settings.update((s) => s.copyWith(ropeStyleId: style.id));
-    _closeMenu();
-    _wake();
-  }
-
   Widget _buildMenu() {
     final rect = _menuRect!;
-    final current = _sim?.style.id;
     final following = _settings.value.followWindow;
     Widget item(String label, VoidCallback onTap, {bool selected = false}) {
       return GestureDetector(
@@ -512,9 +506,6 @@ class _CharmOverlayState extends State<CharmOverlay> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             item('Customize…', _openCustomize),
-            for (final style in RopeStyle.all)
-              item(style.name, () => _setStyle(style),
-                  selected: style.id == current),
             item('Hang from window', () => _setFollowWindow(!following),
                 selected: following),
             item('Quit', _quit),

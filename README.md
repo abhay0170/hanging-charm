@@ -34,8 +34,11 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   window moved. Click another window and the charm moves to it; click the
   desktop and it goes back to the top of the screen
 - **Full-screen apps** (video, games, F11 browser) hide the charm
-- **Right-click the bead**: Thread / Gold Chain / Neon rope, Hang from
-  window (on by default), Quit
+- **Right-click the bead**: Customize…, Hang from window (on by default),
+  Quit
+- **Nine ropes**, chosen in Customize: Thread, Leather, Gold Chain, Silver
+  Chain, Neon, Spider Thread, Midnight Cord, Temple Thread, Silver Cord. Each
+  has its own physics and look (see `packages/charm_physics/README.md`).
 - **Tray icon** (next to the clock): Customize…, Show charm, Hang from
   window, Launch at login (off by default), Quit
 - **Customize window** (tray or right-click → Customize…): Library, Ropes &
@@ -103,7 +106,8 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 | Grabbing the charm doesn't take focus from the active app | ✅ |
 | Grab, drag, throw, brush-nudge, rope style switch | ✅ |
 | Drag the pin → window follows, charm trails and settles | ✅ |
-| Physics tests (swing never exceeds the user's motion, natural decay, stretch ≤ 1.02×, fixed 240 Hz, sleep, throw speed, anchor drag, nudge proportional, charm speed) | ✅ 28/28 |
+| Physics tests for all nine ropes (swing never exceeds the user's motion, natural decay, settles within 12 s, stretch ≤ 1.02×, fixed 240 Hz, sleep, throw speed, anchor drag, nudge proportional, charm speed) | ✅ 64/64 |
+| Nine ropes shown in Customize with previews, and applied live to the charm | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |

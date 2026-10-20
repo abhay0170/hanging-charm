@@ -296,9 +296,15 @@ class _RopesPage extends StatelessWidget {
   final CustomizeChannel channel;
 
   static const _captions = {
-    'thread': 'Light gold thread. Swings the longest.',
-    'gold_chain': 'Heavy links. A slower swing that settles sooner.',
-    'neon': 'A glowing filament. The freest swing of all.',
+    'thread': 'Light gold thread. A long, easy swing.',
+    'leather': 'A flat leather braid. Grippy; settles soonest.',
+    'gold_chain': 'Heavy gold links. A slower swing that settles sooner.',
+    'silver_chain': 'Linked silver. A chain, a touch lighter.',
+    'neon': 'A glowing filament. Light and lively.',
+    'spider_thread': 'Spun silk, almost weightless. The floatiest swing.',
+    'midnight_cord': 'A dark braided cord. Steady and calm.',
+    'temple_thread': 'Saffron and vermilion cotton, twisted together.',
+    'silver_cord': 'Woven silver cord. Smooth and even.',
   };
 
   @override

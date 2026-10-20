@@ -16,15 +16,22 @@ platform types, so it runs and is tested anywhere.
 
 ## Feel (from 35°, `dart run tool/tune.dart`)
 
-| Rope | Swing period | Each swing keeps | Settles in |
-|---|---|---|---|
-| Thread | 1.2 s | 84% | ~10 s |
-| Gold Chain | 1.1 s | 75% | ~7 s |
-| Neon | 1.3 s | 85% | ~11 s |
+| Rope | Material | Swing period | Each swing keeps | Settles in |
+|---|---|---|---|---|
+| Thread | light gold thread | 1.22 s | 84% | 9.8 s |
+| Leather | flat braid, grippy | 1.17 s | 74% | 6.0 s |
+| Gold Chain | heavy links | 1.12 s | 75% | 6.9 s |
+| Silver Chain | lighter links | 1.15 s | 78% | 7.6 s |
+| Neon | light filament | 1.28 s | 85% | 10.8 s |
+| Spider Thread | silk, almost weightless | 1.32 s | 86% | 9.8 s |
+| Midnight Cord | dark braid | 1.20 s | 80% | 7.9 s |
+| Temple Thread | twisted cotton | 1.23 s | 77% | 6.8 s |
+| Silver Cord | woven silver | 1.18 s | 80% | 8.2 s |
 
-The charm carries most of the weight (12 against 0.15–1 per rope point), so
-it swings like a pendulum. Air damping plus a little friction at the hook
-make the last faint sway stop instead of lingering.
+The charm carries most of the weight (12 against 0.05–1 per rope point), so
+it swings like a pendulum. Heavier ropes carry momentum of their own and
+swing a little faster. Air damping plus a little friction at the hook make
+the last faint sway stop instead of lingering. Every rope passes every test.
 
 ## How it is solved
 
@@ -37,7 +44,7 @@ make the last faint sway stop instead of lingering.
 - An energy cap takes any leftover numerical gain back out of the speed.
 
 ```bash
-dart test                  # 28 tests
+dart test                  # 64 tests (most run once per rope)
 dart run tool/tune.dart    # swing period, decay and settle time per rope
 dart run tool/bench.dart   # CPU cost: ~0.4% of one core while swinging
 ```

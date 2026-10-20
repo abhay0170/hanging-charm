@@ -107,10 +107,36 @@ class CharmPainter extends CustomPainter {
     points.add(ringTop);
 
     switch (sim.style.id) {
+      case 'leather':
+        _paintBraid(canvas, points,
+            base: const Color(0xFF5E3A1F),
+            light: const Color(0xFF9A6B3F),
+            stitch: const Color(0xFF3A2312),
+            width: 3.6);
       case 'gold_chain':
-        _paintChain(canvas, points);
+        _paintChain(canvas, points,
+            face: const Color(0xFFD9A93E), edge: const Color(0xFFB0832A));
+      case 'silver_chain':
+        _paintChain(canvas, points,
+            face: const Color(0xFFC9D0D8), edge: const Color(0xFF8E979F));
       case 'neon':
         _paintNeon(canvas, points);
+      case 'spider_thread':
+        _paintSilk(canvas, points);
+      case 'midnight_cord':
+        _paintBraid(canvas, points,
+            base: const Color(0xFF1C2032),
+            light: const Color(0xFF4A5372),
+            stitch: const Color(0xFF0E101A),
+            width: 3.2);
+      case 'temple_thread':
+        _paintTempleThread(canvas, points);
+      case 'silver_cord':
+        _paintBraid(canvas, points,
+            base: const Color(0xFF8C959F),
+            light: const Color(0xFFE4E9EE),
+            stitch: const Color(0xFF5F6872),
+            width: 3.0);
       default:
         _paintThread(canvas, points);
     }
@@ -147,15 +173,99 @@ class CharmPainter extends CustomPainter {
     );
   }
 
-  void _paintChain(Canvas canvas, List<Offset> p) {
-    final face = Paint()
+  /// A woven or braided cord: a body stroke, a lighter top strand, and
+  /// short diagonal stitches along it so it reads as braided, not smooth.
+  void _paintBraid(Canvas canvas, List<Offset> p,
+      {required Color base,
+      required Color light,
+      required Color stitch,
+      required double width}) {
+    final path = _smoothPath(p);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round
+        ..color = base,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * 0.3
+        ..color = light,
+    );
+    final stitches = Paint()
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round
+      ..color = stitch;
+    final half = width / 2;
+    for (var i = 1; i < p.length - 1; i++) {
+      final along = p[i + 1] - p[i - 1];
+      final length = along.distance;
+      if (length == 0) continue;
+      final d = along / length;
+      final n = Offset(-d.dy, d.dx);
+      canvas.drawLine(p[i] - n * half - d * (half * 0.8),
+          p[i] + n * half + d * (half * 0.8), stitches);
+    }
+  }
+
+  /// Spun silk: barely there, with a faint sheen around a fine line.
+  void _paintSilk(Canvas canvas, List<Offset> p) {
+    final path = _smoothPath(p);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.6
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0x26F2F6FA),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0xE6EEF2F6),
+    );
+  }
+
+  /// Saffron cotton twisted with vermilion: the colours alternate segment by
+  /// segment, which reads as a two-ply twist.
+  void _paintTempleThread(Canvas canvas, List<Offset> p) {
+    canvas.drawPath(
+      _smoothPath(p),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0xFFF2A007),
+    );
+    final vermilion = Paint()
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.butt
+      ..color = const Color(0xFFD7381C);
+    for (var i = 0; i < p.length - 1; i += 2) {
+      final a = p[i], b = p[i + 1];
+      // A short stretch in the middle of every other segment.
+      canvas.drawLine(Offset.lerp(a, b, 0.2)!, Offset.lerp(a, b, 0.8)!,
+          vermilion);
+    }
+  }
+
+  void _paintChain(Canvas canvas, List<Offset> p,
+      {required Color face, required Color edge}) {
+    final facePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8
-      ..color = const Color(0xFFD9A93E);
-    final edge = Paint()
+      ..color = face;
+    final edgePaint = Paint()
       ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFB0832A);
+      ..color = edge;
     for (var i = 0; i < p.length - 1; i++) {
       final a = p[i], b = p[i + 1];
       final mid = (a + b) / 2;
@@ -167,9 +277,10 @@ class CharmPainter extends CustomPainter {
       if (i.isEven) {
         canvas.drawOval(
             Rect.fromCenter(center: Offset.zero, width: length, height: 6),
-            face);
+            facePaint);
       } else {
-        canvas.drawLine(Offset(-length / 2, 0), Offset(length / 2, 0), edge);
+        canvas.drawLine(
+            Offset(-length / 2, 0), Offset(length / 2, 0), edgePaint);
       }
       canvas.restore();
     }

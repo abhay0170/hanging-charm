@@ -66,5 +66,79 @@ class RopeStyle {
     segmentMass: 0.15,
   );
 
-  static const all = [thread, goldChain, neon];
+  /// Flat leather braid: heavier and grippier than thread, so it settles
+  /// sooner.
+  static const leather = RopeStyle(
+    id: 'leather',
+    name: 'Leather',
+    damping: 0.997,
+    gravity: 5000,
+    segmentMass: 0.6,
+    iterations: 28,
+    friction: 40,
+  );
+
+  /// Linked silver: a chain like the gold one, a touch lighter.
+  static const silverChain = RopeStyle(
+    id: 'silver_chain',
+    name: 'Silver Chain',
+    damping: 0.9975,
+    gravity: 5100,
+    segmentMass: 0.8,
+    iterations: 30,
+  );
+
+  /// Spun silk: almost weightless, the floatiest swing of all.
+  static const spiderThread = RopeStyle(
+    id: 'spider_thread',
+    name: 'Spider Thread',
+    damping: 0.999,
+    gravity: 4200,
+    segmentMass: 0.05,
+    iterations: 20,
+    friction: 35,
+  );
+
+  /// A dark braided cord: medium weight, steady.
+  static const midnightCord = RopeStyle(
+    id: 'midnight_cord',
+    name: 'Midnight Cord',
+    damping: 0.998,
+    gravity: 4800,
+    segmentMass: 0.4,
+    friction: 30,
+  );
+
+  /// Saffron and vermilion cotton: light, but the soft twist catches the air.
+  static const templeThread = RopeStyle(
+    id: 'temple_thread',
+    name: 'Temple Thread',
+    damping: 0.9975,
+    gravity: 4700,
+    segmentMass: 0.2,
+    friction: 35,
+  );
+
+  /// Woven silver cord: medium weight, smooth.
+  static const silverCord = RopeStyle(
+    id: 'silver_cord',
+    name: 'Silver Cord',
+    damping: 0.998,
+    gravity: 4900,
+    segmentMass: 0.5,
+    friction: 30,
+  );
+
+  /// Every rope, in the order they are offered.
+  static const all = [
+    thread,
+    leather,
+    goldChain,
+    silverChain,
+    neon,
+    spiderThread,
+    midnightCord,
+    templeThread,
+    silverCord,
+  ];
 }
