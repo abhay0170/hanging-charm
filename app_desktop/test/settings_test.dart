@@ -25,6 +25,7 @@ void main() {
   test('saves and reads back every setting', () async {
     final store = await SettingsStore.open(dir);
     store.update((s) => s.copyWith(
+          charmId: 'horseshoe',
           ropeStyleId: 'gold_chain',
           followWindow: false,
           charmVisible: false,

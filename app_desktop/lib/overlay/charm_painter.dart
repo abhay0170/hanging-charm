@@ -1,88 +1,23 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:charm_physics/charm_physics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
-/// Size of the placeholder charm and the jump ring it hangs from.
-const double charmRadius = 22;
+import '../charms/charm_sprite.dart';
+
+/// The jump ring between rope and charm.
 const double ringRadius = 4;
 
-/// Centre of the charm body. The rope's last particle is the charm itself,
-/// so the bead you see swings exactly as far as the physics allows; hanging
-/// it below the rope's end would act as a longer lever and swing further.
+/// Centre of the charm. The rope's last particle is the charm itself, so
+/// the charm you see swings exactly as far as the physics allows; hanging it
+/// below the rope's end would act as a longer lever and swing further.
 Offset charmCenter(RopeSim sim) => Offset(sim.charmX, sim.charmY);
-
-/// Distance from the charm's centre up to where the rope meets the ring.
-const double _ropeCut = charmRadius + ringRadius * 2;
 
 /// Unit vector from the charm's centre up toward where the rope enters it.
 Offset _upFromCharm(RopeSim sim) {
   final a = sim.charmAngle;
   return Offset(-math.sin(a), -math.cos(a));
-}
-
-/// The bead (shadow, gradient body, rim, highlight) drawn once into an image
-/// at the screen's pixel density. Its light comes from a fixed direction, so
-/// it never needs redrawing while it swings: each frame only places it.
-class CharmSprite {
-  CharmSprite(this.devicePixelRatio) : image = _render(devicePixelRatio);
-
-  /// Room around the bead for its blurred shadow.
-  static const double _pad = 12;
-  static const double extent = (charmRadius + _pad) * 2;
-
-  final double devicePixelRatio;
-  final ui.Image image;
-
-  static ui.Image _render(double dpr) {
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder)..scale(dpr);
-    const center = Offset(extent / 2, extent / 2);
-
-    // Soft shadow so the charm reads on light and dark backgrounds.
-    canvas.drawCircle(
-      center.translate(0, 3),
-      charmRadius,
-      Paint()
-        ..color = const Color(0x55000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-    final body = Rect.fromCircle(center: center, radius: charmRadius);
-    canvas.drawCircle(
-      center,
-      charmRadius,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.35, -0.45),
-          radius: 0.95,
-          colors: [Color(0xFFFFF3C4), Color(0xFFE0A93B), Color(0xFF7A4E0E)],
-          stops: [0, 0.45, 1],
-        ).createShader(body),
-    );
-    canvas.drawCircle(
-      center,
-      charmRadius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = const Color(0xFF6B430B),
-    );
-    // Specular highlight.
-    canvas.drawOval(
-      Rect.fromCenter(center: center.translate(-7, -9), width: 12, height: 7),
-      Paint()..color = const Color(0xCCFFFFFF),
-    );
-
-    final size = (extent * dpr).ceil();
-    final picture = recorder.endRecording();
-    final image = picture.toImageSync(size, size);
-    picture.dispose();
-    return image;
-  }
-
-  void dispose() => image.dispose();
 }
 
 /// Draws the anchor pin, the rope in its style, and the charm.
@@ -94,14 +29,15 @@ class CharmPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // The rope ends at the jump ring on top of the charm; the particles
-    // inside the charm are not drawn.
+    // The rope ends at the jump ring just above the charm's hang point; the
+    // particles closer to the charm's centre than that are not drawn.
     final center = charmCenter(sim);
-    final ringTop = center + _upFromCharm(sim) * _ropeCut;
+    final ropeCut = sprite.hangOffset.distance + ringRadius * 2;
+    final ringTop = center + _upFromCharm(sim) * ropeCut;
     final points = <Offset>[];
     for (var i = 0; i < sim.particleCount - 1; i++) {
       final p = Offset(sim.x(i), sim.y(i));
-      if (i > 0 && (p - center).distance < _ropeCut) break;
+      if (i > 0 && (p - center).distance < ropeCut) break;
       points.add(p);
     }
     points.add(ringTop);
@@ -320,11 +256,13 @@ class CharmPainter extends CustomPainter {
   }
 
   void _paintCharm(Canvas canvas, Offset center) {
-    // Jump ring between the rope and the charm.
-    final ringCenter =
-        center + _upFromCharm(sim) * (charmRadius + ringRadius);
+    final up = _upFromCharm(sim);
+    final hang = sprite.hangOffset;
+
+    // Jump ring just above the hang point. Drawn first, so a charm hung
+    // through a hole (the coin) shows its ring through the hole.
     canvas.drawCircle(
-      ringCenter,
+      center + up * (hang.distance + ringRadius),
       ringRadius,
       Paint()
         ..style = PaintingStyle.stroke
@@ -332,16 +270,23 @@ class CharmPainter extends CustomPainter {
         ..color = const Color(0xFFC8962E),
     );
 
+    // Turn the artwork so its hang point lies straight up the rope from its
+    // centre, the way a real charm settles under its own weight.
+    final turn = up.direction - hang.direction;
     final image = sprite.image;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(turn);
     canvas.drawImageRect(
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
       Rect.fromCenter(
-          center: center,
-          width: CharmSprite.extent,
-          height: CharmSprite.extent),
+          center: Offset.zero,
+          width: sprite.extent.width,
+          height: sprite.extent.height),
       Paint()..filterQuality = FilterQuality.low,
     );
+    canvas.restore();
   }
 
   @override

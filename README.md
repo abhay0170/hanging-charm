@@ -10,6 +10,8 @@ charm_app/
 ├── packages/charm_physics/   rope physics, pure Dart, unit-tested
 └── app_desktop/              Flutter desktop app (Windows overlay implemented)
     ├── lib/overlay/          overlay widget, painter, native channel
+    ├── assets/charms/        charm artwork (SVG) and catalog.json
+    ├── lib/charms/           charm catalog and drawing charms to images
     ├── lib/settings/         saved settings (JSON, no plugins)
     ├── lib/customize/        Customize window UI and its link to the charm
     └── windows/runner/       overlay window, window tracking, tray icon,
@@ -36,6 +38,9 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
 - **Full-screen apps** (video, games, F11 browser) hide the charm
 - **Right-click the bead**: Customize…, Hang from window (on by default),
   Quit
+- **13 charms** in three collections (Classic, Luck, Nature), chosen in
+  Customize → Library. Each has its own size, weight and hang point.
+  These are simple original placeholders. See "Adding charms" below.
 - **Nine ropes**, chosen in Customize: Thread, Leather, Gold Chain, Silver
   Chain, Neon, Spider Thread, Midnight Cord, Temple Thread, Silver Cord. Each
   has its own physics and look (see `packages/charm_physics/README.md`).
@@ -55,6 +60,35 @@ also shown in Task Manager → Startup apps). Only one copy runs at a time.
 It starts hanging still. Every swing comes from you.
 
 No Flutter plugins are used, so Windows Developer Mode is not needed.
+
+## Adding charms
+
+1. Export the artwork as **SVG** (preferred: it stays sharp at any screen
+   scale) or **PNG** (at least 4× its display size), with a transparent
+   background. Leave out the ring: the app draws the jump ring and the
+   shadow.
+2. Put it in a folder under `app_desktop/assets/charms/` (a new folder must
+   also be listed under `assets:` in `pubspec.yaml`).
+3. Add an entry to `assets/charms/catalog.json`:
+
+```json
+{ "id": "lotus", "name": "Lotus", "description": "One line for its card.",
+  "art": "nature/lotus.svg", "size": 44, "mass": 8, "hang": [0.5, 0.05] }
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | unique, saved in settings, so don't rename it later |
+| `size` | width on screen in logical px (24–64); height follows the artwork |
+| `mass` | weight (3–30). The bead is 12. Light charms drift, heavy ones swing steadily |
+| `hang` | where the ring attaches, as (x, y) fractions of the artwork. (0.5, 0) is top centre. The charm hangs with this point straight above its centre |
+
+Bad entries (missing art, wrong type, repeated id) are skipped rather than
+breaking the app, and out-of-range numbers are pulled into range. A test
+(`test/charm_catalog_test.dart`) fails if the shipped catalog has any of
+these or points at a missing file, and `test/charm_sprite_test.dart` draws
+every charm. If artwork fails to load in the app, the charm shows as the
+gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 
 ## How the overlay works (Windows)
 
@@ -108,6 +142,8 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 | Drag the pin → window follows, charm trails and settles | ✅ |
 | Physics tests for all nine ropes (swing never exceeds the user's motion, natural decay, settles within 12 s, stretch ≤ 1.02×, fixed 240 Hz, sleep, throw speed, anchor drag, nudge proportional, charm speed) | ✅ 64/64 |
 | Nine ropes shown in Customize with previews, and applied live to the charm | ✅ |
+| 13 charms: catalog tests (6), every charm draws (3), Library shows real artwork, a chosen charm hangs on the real rope with its ring and hang point | ✅ |
+| Light (3) and heavy (30) charms on every rope never swing past the let-go; a weight change doesn't move the charm | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |

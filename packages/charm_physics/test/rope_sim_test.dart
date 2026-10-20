@@ -255,6 +255,33 @@ void main() {
     expect(reach, lessThanOrEqualTo(sim.restLength + 1e-6));
   });
 
+  test('a new charm weight takes effect without moving or swinging it', () {
+    final sim = RopeSim(anchorX: 0, anchorY: 0);
+    run(sim, 2);
+    final x = sim.charmX, y = sim.charmY;
+    sim.charmMass = 5;
+    expect(sim.charmMass, 5);
+    var widest = 0.0;
+    run(sim, 3, () => widest = math.max(widest, sim.charmX.abs()));
+    expect(widest, lessThan(0.5));
+    expect(sim.charmX, closeTo(x, 0.5));
+    expect(sim.charmY, closeTo(y, 0.5));
+  });
+
+  test('light and heavy charms on every rope never swing past the let-go',
+      () {
+    // The lightest and heaviest weights a catalog charm may have.
+    for (final mass in [3.0, 30.0]) {
+      for (final style in RopeStyle.all) {
+        final sim =
+            RopeSim(style: style, anchorX: 500, anchorY: 0, charmMass: mass);
+        holdAndRelease(sim, 50 * deg);
+        expect(maxSwing(sim, 12), lessThanOrEqualTo(50 * deg + 0.5 * deg),
+            reason: '${style.name}, charm mass $mass');
+      }
+    }
+  });
+
   test('changing rope style keeps the charm where it was pointing', () {
     final sim = RopeSim(anchorX: 0, anchorY: 0, startAngle: 0.5);
     final angle = sim.charmAngle;

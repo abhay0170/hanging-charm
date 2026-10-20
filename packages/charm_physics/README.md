@@ -44,7 +44,7 @@ the last faint sway stop instead of lingering. Every rope passes every test.
 - An energy cap takes any leftover numerical gain back out of the speed.
 
 ```bash
-dart test                  # 64 tests (most run once per rope)
+dart test                  # 66 tests (most run once per rope)
 dart run tool/tune.dart    # swing period, decay and settle time per rope
 dart run tool/bench.dart   # CPU cost: ~0.4% of one core while swinging
 ```

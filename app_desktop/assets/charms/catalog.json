@@ -1,0 +1,38 @@
+{
+  "collections": [
+    {
+      "id": "classic",
+      "name": "Classic",
+      "description": "Simple shapes that suit any desktop.",
+      "charms": [
+        { "id": "gold_bead", "name": "Gold bead", "description": "Polished, weighty and never out of place.", "art": "builtin:gold_bead", "size": 44, "mass": 12 },
+        { "id": "star", "name": "Star", "description": "Everyone's first lucky charm. Light, so it swings freely.", "art": "classic/star.svg", "size": 46, "mass": 8, "hang": [0.5, 0.04] },
+        { "id": "heart", "name": "Heart", "description": "Red enamel in a gold rim.", "art": "classic/heart.svg", "size": 44, "mass": 10, "hang": [0.5, 0.21] },
+        { "id": "gem", "name": "Gem", "description": "A faceted blue stone in a silver cap. Heavy for its size.", "art": "classic/gem.svg", "size": 38, "mass": 14, "hang": [0.5, 0.08] },
+        { "id": "moon", "name": "Moon", "description": "A gold crescent with a few craters.", "art": "classic/moon.svg", "size": 42, "mass": 9, "hang": [0.5, 0.12] }
+      ]
+    },
+    {
+      "id": "luck",
+      "name": "Luck",
+      "description": "Small things people carry for luck.",
+      "charms": [
+        { "id": "clover", "name": "Four-leaf clover", "description": "The rare one. Light as a leaf.", "art": "luck/clover.svg", "size": 44, "mass": 7, "hang": [0.5, 0.09] },
+        { "id": "evil_eye", "name": "Eye bead", "description": "A blue glass eye, said to turn away bad luck.", "art": "luck/evil_eye.svg", "size": 42, "mass": 11, "hang": [0.5, 0.02] },
+        { "id": "horseshoe", "name": "Horseshoe", "description": "Open end up, to hold the luck in. The heaviest here.", "art": "luck/horseshoe.svg", "size": 46, "mass": 16, "hang": [0.5, 0.02] },
+        { "id": "coin", "name": "Lucky coin", "description": "Hung through its square hole.", "art": "luck/coin.svg", "size": 44, "mass": 13, "hang": [0.5, 0.41] },
+        { "id": "key", "name": "Old key", "description": "A brass key, hung by its bow.", "art": "luck/key.svg", "size": 30, "mass": 12, "hang": [0.5, 0.06] }
+      ]
+    },
+    {
+      "id": "nature",
+      "name": "Nature",
+      "description": "Leaves, petals and wings.",
+      "charms": [
+        { "id": "leaf", "name": "Leaf", "description": "The lightest charm. It drifts.", "art": "nature/leaf.svg", "size": 34, "mass": 5, "hang": [0.5, 0.02] },
+        { "id": "flower", "name": "Flower", "description": "Five pink petals around a golden heart.", "art": "nature/flower.svg", "size": 46, "mass": 6, "hang": [0.5, 0.07] },
+        { "id": "butterfly", "name": "Butterfly", "description": "Hung from its body, wings spread.", "art": "nature/butterfly.svg", "size": 54, "mass": 5, "hang": [0.5, 0.2] }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import 'package:charm_physics/charm_physics.dart';
 /// the only record of it, so the two can never disagree.
 class AppSettings {
   const AppSettings({
+    this.charmId = 'gold_bead',
     this.ropeStyleId = 'thread',
     this.followWindow = true,
     this.charmVisible = true,
@@ -18,6 +19,10 @@ class AppSettings {
 
   /// Where along an edge the pin sits by default, 0 = left, 1 = right.
   static const double defaultAnchorFraction = 0.72;
+
+  /// Which charm hangs, by its catalog id. One that is no longer in the
+  /// catalog shows as the gold bead.
+  final String charmId;
 
   final String ropeStyleId;
 
@@ -39,6 +44,7 @@ class AppSettings {
       );
 
   AppSettings copyWith({
+    String? charmId,
     String? ropeStyleId,
     bool? followWindow,
     bool? charmVisible,
@@ -46,6 +52,7 @@ class AppSettings {
     double? screenAnchorFraction,
   }) {
     return AppSettings(
+      charmId: charmId ?? this.charmId,
       ropeStyleId: ropeStyleId ?? this.ropeStyleId,
       followWindow: followWindow ?? this.followWindow,
       charmVisible: charmVisible ?? this.charmVisible,
@@ -56,6 +63,7 @@ class AppSettings {
 
   Map<String, Object?> toJson() => {
         'version': version,
+        'charm': charmId,
         'ropeStyle': ropeStyleId,
         'followWindow': followWindow,
         'charmVisible': charmVisible,
@@ -80,7 +88,9 @@ class AppSettings {
     }
 
     final ropeId = read<String>('ropeStyle', d.ropeStyleId);
+    final charmId = read<String>('charm', d.charmId);
     return AppSettings(
+      charmId: charmId.isEmpty ? d.charmId : charmId,
       ropeStyleId: RopeStyle.all.any((s) => s.id == ropeId)
           ? ropeId
           : d.ropeStyleId,
@@ -96,6 +106,7 @@ class AppSettings {
   @override
   bool operator ==(Object other) =>
       other is AppSettings &&
+      other.charmId == charmId &&
       other.ropeStyleId == ropeStyleId &&
       other.followWindow == followWindow &&
       other.charmVisible == charmVisible &&
@@ -103,6 +114,6 @@ class AppSettings {
       other.screenAnchorFraction == screenAnchorFraction;
 
   @override
-  int get hashCode => Object.hash(ropeStyleId, followWindow, charmVisible,
-      windowAnchorFraction, screenAnchorFraction);
+  int get hashCode => Object.hash(charmId, ropeStyleId, followWindow,
+      charmVisible, windowAnchorFraction, screenAnchorFraction);
 }

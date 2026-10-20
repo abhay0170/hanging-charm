@@ -20,7 +20,7 @@ class RopeSim {
     this._style = RopeStyle.thread,
     required this._anchorX,
     required this._anchorY,
-    this.charmMass = 12,
+    this._charmMass = 12,
     double startAngle = 0,
   })  : _anchorTargetX = _anchorX,
         _anchorTargetY = _anchorY {
@@ -54,8 +54,23 @@ class RopeSim {
   /// the rope harder than the hand moved.
   static const double anchorFollow = 0.35;
 
+  double _charmMass;
+
   /// Mass of the charm relative to one rope particle of mass 1.
-  final double charmMass;
+  double get charmMass => _charmMass;
+
+  /// Swaps the charm's weight, as when a different charm is hung. Nothing
+  /// moves: the rope keeps its shape and speed, and the new weight only
+  /// shows in how it swings from here on.
+  set charmMass(double value) {
+    if (value == _charmMass || value <= 0) return;
+    _charmMass = value;
+    _invMass[_invMass.length - 1] = 1 / value;
+    // Energy is mass times speed; restart the energy limit from the new
+    // total instead of treating the change as a gain to take back.
+    _userInput = true;
+    wake();
+  }
 
   RopeStyle _style;
   double _anchorX;

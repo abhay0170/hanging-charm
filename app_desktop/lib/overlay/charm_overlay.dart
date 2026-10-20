@@ -6,6 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../charms/charm.dart';
+import '../charms/charm_sprite.dart';
 import '../customize/protocol.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
@@ -20,10 +22,17 @@ enum _Drag { none, charm, anchor }
 /// Nothing here runs while the charm is at rest: the frame loop stops when
 /// the rope sleeps, and the native window decides click-through by itself.
 class CharmOverlay extends StatefulWidget {
-  const CharmOverlay({super.key, required this.settings});
+  const CharmOverlay({
+    super.key,
+    required this.settings,
+    required this.catalog,
+  });
 
   /// What the user chose last time; changes made here are saved back.
   final SettingsStore settings;
+
+  /// Every charm on offer.
+  final CharmCatalog catalog;
 
   @override
   State<CharmOverlay> createState() => _CharmOverlayState();
@@ -38,8 +47,11 @@ class _CharmOverlayState extends State<CharmOverlay> {
   /// actual contact counts, and the knock is a share of the cursor's own
   /// speed, so a gentle pass gives a gentle swing.
   static const double _brushSpeed = 250;
-  static const double _brushRadius = charmRadius + 2;
   static const double _brushShare = 0.5;
+  double get _brushRadius => _hitRadius + 2;
+
+  /// How far from its centre the current charm can be grabbed.
+  double get _hitRadius => _sprite?.hitRadius ?? 22;
 
   /// Customize…, Hang from window, Quit. Ropes are chosen in Customize.
   static const Size _menuSize = Size(160, 106);
@@ -82,6 +94,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   }
 
   void _apply(AppSettings? old, AppSettings next) {
+    if (old != null && old.charmId != next.charmId) _showCharm(next.charmId);
     if (old?.ropeStyleId != next.ropeStyleId) {
       final sim = _sim;
       if (sim != null) {
@@ -100,6 +113,25 @@ class _CharmOverlayState extends State<CharmOverlay> {
       _channel.setAnchorFractions(
           next.windowAnchorFraction, next.screenAnchorFraction);
     }
+  }
+
+  /// The charm the user last asked for; a slower earlier load must not
+  /// replace it when it finishes.
+  String? _wantedCharm;
+  double? _dpr;
+
+  /// Hangs the charm with [id]: its artwork and its weight. The old charm
+  /// stays up until the new artwork is ready, so nothing flickers.
+  Future<void> _showCharm(String id) async {
+    final charm = widget.catalog.charmFor(id);
+    _wantedCharm = charm.id;
+    final dpr = _dpr;
+    if (dpr == null) return; // Before the first build; build asks again.
+    final sprite = await CharmSprite.load(charm, dpr);
+    if (!mounted || _wantedCharm != charm.id) return;
+    setState(() => _sprite = sprite);
+    _sim?.charmMass = charm.mass;
+    _wake();
   }
 
   void _onTrayCommand(String command) {
@@ -193,7 +225,6 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (frame != null) {
       SchedulerBinding.instance.cancelFrameCallbackWithId(frame);
     }
-    _sprite?.dispose();
     _repaint.dispose();
     super.dispose();
   }
@@ -204,6 +235,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     // Starts hanging still: every swing comes from the user.
     return _sim ??= RopeSim(
       style: _settings.value.ropeStyle,
+      charmMass: widget.catalog.charmFor(_settings.value.charmId).mass,
       anchorX: size.width / 2,
       anchorY: 0,
       startAngle: _benchSwing ? 35 * math.pi / 180 : 0,
@@ -335,7 +367,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     final sim = _sim;
     if (sim == null) return null;
     return Rect.fromCircle(
-        center: charmCenter(sim), radius: charmRadius + _hitSlop);
+        center: charmCenter(sim), radius: _hitRadius + _hitSlop);
   }
 
   Rect? _anchorRect() {
@@ -348,7 +380,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   bool _hitsCharm(Offset p) {
     final sim = _sim;
     if (sim == null) return false;
-    return (p - charmCenter(sim)).distance <= charmRadius + _hitSlop;
+    return (p - charmCenter(sim)).distance <= _hitRadius + _hitSlop;
   }
 
   bool _hitsAnchor(Offset p) => _anchorRect()?.contains(p) ?? false;
@@ -518,9 +550,12 @@ class _CharmOverlayState extends State<CharmOverlay> {
   @override
   Widget build(BuildContext context) {
     final dpr = View.of(context).devicePixelRatio;
-    if (_sprite?.devicePixelRatio != dpr) {
-      _sprite?.dispose();
-      _sprite = CharmSprite(dpr);
+    if (_dpr != dpr) {
+      // First build, or the screen's scale changed: (re)load the charm at
+      // the new density, showing the bead until it is ready.
+      _dpr = dpr;
+      _sprite ??= CharmSprite.goldBead(dpr);
+      _showCharm(_settings.value.charmId);
     }
     final sprite = _sprite!;
     return LayoutBuilder(builder: (context, constraints) {

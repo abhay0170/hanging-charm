@@ -2,6 +2,7 @@ import 'package:charm_physics/charm_physics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../charms/charm.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
@@ -15,9 +16,10 @@ const _gold = Color(0xFFC8962E);
 /// The Customize window: Library, Ropes & Layout, Settings and About.
 /// Every change applies to the charm straight away; there is no Save.
 class CustomizeApp extends StatelessWidget {
-  const CustomizeApp({super.key, required this.channel});
+  const CustomizeApp({super.key, required this.channel, required this.catalog});
 
   final CustomizeChannel channel;
+  final CharmCatalog catalog;
 
   ThemeData _theme(Brightness brightness) => ThemeData(
         colorSchemeSeed: _gold,
@@ -33,15 +35,16 @@ class CustomizeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
-      home: _CustomizeHome(channel: channel),
+      home: _CustomizeHome(channel: channel, catalog: catalog),
     );
   }
 }
 
 class _CustomizeHome extends StatefulWidget {
-  const _CustomizeHome({required this.channel});
+  const _CustomizeHome({required this.channel, required this.catalog});
 
   final CustomizeChannel channel;
+  final CharmCatalog catalog;
 
   @override
   State<_CustomizeHome> createState() => _CustomizeHomeState();
@@ -105,8 +108,14 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                       );
                     }
                     return switch (_tab) {
-                      0 => _LibraryPage(settings: settings),
-                      1 => _RopesPage(settings: settings, channel: channel),
+                      0 => _LibraryPage(
+                          settings: settings,
+                          catalog: widget.catalog,
+                          channel: channel),
+                      1 => _RopesPage(
+                          settings: settings,
+                          catalog: widget.catalog,
+                          channel: channel),
                       2 => _SettingsPage(settings: settings, channel: channel),
                       _ => const _AboutPage(),
                     };
@@ -233,55 +242,56 @@ class _ChoiceCard extends StatelessWidget {
 // ---- Library ----
 
 class _LibraryPage extends StatelessWidget {
-  const _LibraryPage({required this.settings});
+  const _LibraryPage({
+    required this.settings,
+    required this.catalog,
+    required this.channel,
+  });
 
   final AppSettings settings;
+  final CharmCatalog catalog;
+  final CustomizeChannel channel;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // An unknown saved charm shows as the bead, so mark the bead chosen.
+    final chosen = catalog.charmFor(settings.charmId).id;
     return _Page(
       title: 'Library',
-      subtitle: 'The charm that hangs on your screen.',
+      subtitle: 'The charm that hangs on your screen. '
+          '${catalog.all.length} to choose from.',
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _ChoiceCard(
-              picture: RopePreview(style: settings.ropeStyle),
-              title: 'Gold bead',
-              caption: 'Polished, weighty and never out of place.',
-              selected: true,
+        for (final collection in catalog.collections) ...[
+          _SectionTitle(collection.name),
+          if (collection.description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(collection.description,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant)),
             ),
-            SizedBox(
-              width: 172,
-              height: 222,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: scheme.outlineVariant),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome_outlined,
-                            color: scheme.onSurfaceVariant),
-                        const SizedBox(height: 8),
-                        Text('More charms are on the way',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: scheme.onSurfaceVariant)),
-                      ],
-                    ),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final charm in collection.charms)
+                _ChoiceCard(
+                  picture: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: CharmArt(charm: charm),
                   ),
+                  title: charm.name,
+                  caption: charm.description,
+                  selected: charm.id == chosen,
+                  onTap: () => channel.update({'charm': charm.id}),
                 ),
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
       ],
     );
   }
@@ -290,9 +300,14 @@ class _LibraryPage extends StatelessWidget {
 // ---- Ropes & Layout ----
 
 class _RopesPage extends StatelessWidget {
-  const _RopesPage({required this.settings, required this.channel});
+  const _RopesPage({
+    required this.settings,
+    required this.catalog,
+    required this.channel,
+  });
 
   final AppSettings settings;
+  final CharmCatalog catalog;
   final CustomizeChannel channel;
 
   static const _captions = {
@@ -326,7 +341,8 @@ class _RopesPage extends StatelessWidget {
           children: [
             for (final style in RopeStyle.all)
               _ChoiceCard(
-                picture: RopePreview(style: style),
+                picture: RopePreview(
+                    style: style, charm: catalog.charmFor(settings.charmId)),
                 title: style.name,
                 caption: _captions[style.id] ?? '',
                 selected: style.id == settings.ropeStyleId,
@@ -479,7 +495,8 @@ class _AboutPage extends StatelessWidget {
             const SizedBox(
                 width: 90,
                 height: 120,
-                child: RopePreview(style: RopeStyle.thread)),
+                child: RopePreview(
+                    style: RopeStyle.thread, charm: Charm.goldBead)),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
