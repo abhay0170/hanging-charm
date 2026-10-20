@@ -60,20 +60,18 @@ int RunCharm(flutter::DartProject project) {
 }
 
 // The Customize window, in a process of its own so that closing it gives
-// all of its memory back.
-int RunCustomize(flutter::DartProject project) {
+// all of its memory back. With |welcome| it shows the first-launch welcome.
+int RunCustomize(flutter::DartProject project, bool welcome) {
   // One Customize window at a time: bring the open one forward instead.
   CreateMutexW(nullptr, FALSE, L"Local\\CharmApp.Customize");
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    if (HWND open = app_messages::Find(app_messages::kCustomizeTitle)) {
-      SetForegroundWindow(open);
-    }
+    if (HWND open = app_messages::FindCustomize()) SetForegroundWindow(open);
     return EXIT_SUCCESS;
   }
 
   // Centred on the screen the cursor is on.
-  constexpr int kWidth = 860;
-  constexpr int kHeight = 600;
+  const int kWidth = welcome ? 720 : 860;
+  const int kHeight = welcome ? 580 : 600;
   POINT cursor;
   GetCursorPos(&cursor);
   HMONITOR monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
@@ -91,8 +89,9 @@ int RunCustomize(flutter::DartProject project) {
       static_cast<unsigned int>(work.top + (work.bottom - work.top - height) / 2));
   Win32Window::Size size(static_cast<unsigned int>(width),
                          static_cast<unsigned int>(height));
-  if (!window.Create(app_messages::kCustomizeTitle, origin, size,
-                     Win32Window::Kind::kNormal)) {
+  if (!window.Create(
+          welcome ? app_messages::kWelcomeTitle : app_messages::kCustomizeTitle,
+          origin, size, Win32Window::Kind::kNormal)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -116,12 +115,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   flutter::DartProject project(L"data");
   std::vector<std::string> arguments = GetCommandLineArguments();
-  const bool customize =
-      std::find(arguments.begin(), arguments.end(), "--customize") !=
-      arguments.end();
+  auto has = [&arguments](const char* flag) {
+    return std::find(arguments.begin(), arguments.end(), flag) !=
+           arguments.end();
+  };
+  const bool customize = has("--customize");
+  const bool welcome = has("--welcome");
+  // The Customize side's Dart reads --welcome from these too.
   project.set_dart_entrypoint_arguments(std::move(arguments));
 
-  const int code = customize ? RunCustomize(std::move(project))
+  const int code = customize ? RunCustomize(std::move(project), welcome)
                              : RunCharm(std::move(project));
   ::CoUninitialize();
   return code;

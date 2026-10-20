@@ -58,9 +58,9 @@ class FlutterWindow : public Win32Window {
   // everything the app remembers goes to Dart, which saves it.
   void OnTrayCommand(TrayIcon::Command command);
 
-  // Starts the Customize process, or brings its window to the front if it
-  // is already open.
-  void OpenCustomize();
+  // Starts the Customize process (showing the first-launch welcome if
+  // |welcome|), or brings its window to the front if it is already open.
+  void OpenCustomize(bool welcome);
 
   std::unique_ptr<AnchorTracker> anchor_tracker_;
   std::unique_ptr<TrayIcon> tray_;

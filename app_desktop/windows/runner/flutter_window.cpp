@@ -148,7 +148,10 @@ void FlutterWindow::HandleOverlayCall(
     }
     result->Success(flutter::EncodableValue(login_item::SetEnabled(*enabled)));
   } else if (method == "openCustomize") {
-    OpenCustomize();
+    OpenCustomize(false);
+    result->Success();
+  } else if (method == "openWelcome") {
+    OpenCustomize(true);
     result->Success();
   } else if (method == "toCustomize") {
     // A JSON message for the Customize window, if it is open.
@@ -158,7 +161,7 @@ void FlutterWindow::HandleOverlayCall(
       return;
     }
     if (!customize_ || !IsWindow(customize_)) {
-      customize_ = app_messages::Find(app_messages::kCustomizeTitle);
+      customize_ = app_messages::FindCustomize();
     }
     app_messages::Send(customize_, GetHandle(), app_messages::kToCustomize,
                        *json);
@@ -180,8 +183,8 @@ void FlutterWindow::UpdateVisibility() {
   }
 }
 
-void FlutterWindow::OpenCustomize() {
-  HWND open = app_messages::Find(app_messages::kCustomizeTitle);
+void FlutterWindow::OpenCustomize(bool welcome) {
+  HWND open = app_messages::FindCustomize();
   if (open) {
     if (IsIconic(open)) ShowWindow(open, SW_RESTORE);
     SetForegroundWindow(open);
@@ -191,6 +194,7 @@ void FlutterWindow::OpenCustomize() {
   GetModuleFileNameW(nullptr, exe, MAX_PATH);
   std::wstring command =
       L"\"" + std::wstring(exe) + L"\" " + app_messages::kCustomizeSwitch;
+  if (welcome) command += std::wstring(L" ") + app_messages::kWelcomeSwitch;
   STARTUPINFOW startup = {sizeof(startup)};
   PROCESS_INFORMATION process = {};
   if (CreateProcessW(exe, command.data(), nullptr, nullptr, FALSE, 0, nullptr,
@@ -206,7 +210,7 @@ void FlutterWindow::OnTrayCommand(TrayIcon::Command command) {
   const char* name = nullptr;
   switch (command) {
     case TrayIcon::Command::kOpenCustomize:
-      OpenCustomize();
+      OpenCustomize(false);
       return;
     case TrayIcon::Command::kToggleLaunchAtLogin:
       login_item::SetEnabled(!login_item::IsEnabled());

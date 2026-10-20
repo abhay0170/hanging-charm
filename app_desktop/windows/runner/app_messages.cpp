@@ -29,6 +29,11 @@ namespace app_messages {
 
 HWND Find(const wchar_t* title) { return FindWindowW(kWindowClass, title); }
 
+HWND FindCustomize() {
+  HWND window = Find(kCustomizeTitle);
+  return window ? window : Find(kWelcomeTitle);
+}
+
 bool Send(HWND target, HWND sender, ULONG_PTR tag, const std::string& json) {
   if (!target || !IsWindow(target)) return false;
   COPYDATASTRUCT data = {};

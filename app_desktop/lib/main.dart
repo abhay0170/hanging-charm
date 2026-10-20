@@ -18,12 +18,17 @@ Future<void> main() async {
 /// The Customize window: the app started with `--customize`, a separate
 /// process that lives only while the window is open
 /// (`windows/runner/main.cpp`).
+/// With `--welcome` it shows the first-launch welcome instead.
 @pragma('vm:entry-point')
-Future<void> customizeMain() async {
+Future<void> customizeMain(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   final channel = CustomizeChannel();
   final catalog = await CharmCatalog.load(rootBundle);
-  runApp(CustomizeApp(channel: channel, catalog: catalog));
+  runApp(CustomizeApp(
+    channel: channel,
+    catalog: catalog,
+    welcome: args.contains('--welcome'),
+  ));
   channel.hello();
 }
 

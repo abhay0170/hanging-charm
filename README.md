@@ -52,6 +52,19 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   About. Changes apply to the charm at once. Ctrl+1–4 switch tabs, Ctrl+W
   closes.
 
+**First launch** opens a 3-step welcome: pick a charm, choose privacy, and
+pick where it hangs and whether it starts at sign-in, with a few tips. Each
+choice applies live. It counts as shown the moment it opens, so it appears
+once even if closed early.
+
+**Privacy:** the app makes no network requests at all. Sharing anonymous
+usage stats is off unless chosen (in the welcome or Customize → Settings).
+There is no stats server yet, so even when on, nothing is sent; the wording
+says so. Opting in creates a random ID, and opting out deletes it. The
+payload is limited to a fixed list (random ID, app version, OS, charm, rope,
+hang mode), and "See what would be shared" shows it word for word
+(`lib/privacy/usage_stats.dart`).
+
 Your choices (rope, pin position, shown or hidden, hang from window) are
 saved to `%APPDATA%\Charm\settings.json` and come back on the next launch.
 Launch at login lives only in Windows' own startup list (`HKCU\...\Run`,
@@ -144,6 +157,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Nine ropes shown in Customize with previews, and applied live to the charm | ✅ |
 | 13 charms: catalog tests (6), every charm draws (3), Library shows real artwork, a chosen charm hangs on the real rope with its ring and hang point | ✅ |
 | Light (3) and heavy (30) charms on every rope never swing past the let-go; a weight change doesn't move the charm | ✅ |
+| Welcome opens by itself on first launch (about 5 s after start), shows 3 steps, and is marked shown at once | ✅ |
+| Stats consent: off by default, ID only on opt-in and deleted on opt-out, fixed field list (6 tests) | ✅ · nothing is sent (no server yet) |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |

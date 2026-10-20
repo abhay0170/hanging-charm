@@ -12,6 +12,9 @@ class AppSettings {
     this.charmVisible = true,
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
+    this.welcomeCompleted = false,
+    this.shareStats = false,
+    this.statsId = '',
   });
 
   /// Bumped when the file's meaning changes, so an older app can tell.
@@ -38,6 +41,17 @@ class AppSettings {
   /// How far along the screen's top edge the pin sits.
   final double screenAnchorFraction;
 
+  /// The welcome has been shown (it is shown once, on first launch).
+  final bool welcomeCompleted;
+
+  /// The user agreed to share anonymous usage stats. Off unless they turn
+  /// it on.
+  final bool shareStats;
+
+  /// A random id for those stats, made only when [shareStats] is turned on
+  /// and deleted when it is turned off. Empty otherwise.
+  final String statsId;
+
   RopeStyle get ropeStyle => RopeStyle.all.firstWhere(
         (s) => s.id == ropeStyleId,
         orElse: () => RopeStyle.thread,
@@ -50,6 +64,9 @@ class AppSettings {
     bool? charmVisible,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
+    bool? welcomeCompleted,
+    bool? shareStats,
+    String? statsId,
   }) {
     return AppSettings(
       charmId: charmId ?? this.charmId,
@@ -58,6 +75,9 @@ class AppSettings {
       charmVisible: charmVisible ?? this.charmVisible,
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
+      welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
+      shareStats: shareStats ?? this.shareStats,
+      statsId: statsId ?? this.statsId,
     );
   }
 
@@ -69,6 +89,9 @@ class AppSettings {
         'charmVisible': charmVisible,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
+        'welcomeCompleted': welcomeCompleted,
+        'shareStats': shareStats,
+        'statsId': statsId,
       };
 
   /// Reads what it can. A missing, mistyped or out-of-range value falls back
@@ -89,6 +112,7 @@ class AppSettings {
 
     final ropeId = read<String>('ropeStyle', d.ropeStyleId);
     final charmId = read<String>('charm', d.charmId);
+    final shareStats = read<bool>('shareStats', d.shareStats);
     return AppSettings(
       charmId: charmId.isEmpty ? d.charmId : charmId,
       ropeStyleId: RopeStyle.all.any((s) => s.id == ropeId)
@@ -100,6 +124,10 @@ class AppSettings {
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
           fraction('screenAnchorFraction', d.screenAnchorFraction),
+      welcomeCompleted: read<bool>('welcomeCompleted', d.welcomeCompleted),
+      shareStats: shareStats,
+      // An id without consent is never kept.
+      statsId: shareStats ? read<String>('statsId', d.statsId) : '',
     );
   }
 
@@ -111,9 +139,20 @@ class AppSettings {
       other.followWindow == followWindow &&
       other.charmVisible == charmVisible &&
       other.windowAnchorFraction == windowAnchorFraction &&
-      other.screenAnchorFraction == screenAnchorFraction;
+      other.screenAnchorFraction == screenAnchorFraction &&
+      other.welcomeCompleted == welcomeCompleted &&
+      other.shareStats == shareStats &&
+      other.statsId == statsId;
 
   @override
-  int get hashCode => Object.hash(charmId, ropeStyleId, followWindow,
-      charmVisible, windowAnchorFraction, screenAnchorFraction);
+  int get hashCode => Object.hash(
+      charmId,
+      ropeStyleId,
+      followWindow,
+      charmVisible,
+      windowAnchorFraction,
+      screenAnchorFraction,
+      welcomeCompleted,
+      shareStats,
+      statsId);
 }

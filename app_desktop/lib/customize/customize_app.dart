@@ -1,12 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:charm_physics/charm_physics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../charms/charm.dart';
+import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
 import 'rope_preview.dart';
+import 'welcome_flow.dart';
 
 const appName = 'Charm';
 const appVersion = '0.1.0';
@@ -16,10 +21,18 @@ const _gold = Color(0xFFC8962E);
 /// The Customize window: Library, Ropes & Layout, Settings and About.
 /// Every change applies to the charm straight away; there is no Save.
 class CustomizeApp extends StatelessWidget {
-  const CustomizeApp({super.key, required this.channel, required this.catalog});
+  const CustomizeApp({
+    super.key,
+    required this.channel,
+    required this.catalog,
+    this.welcome = false,
+  });
 
   final CustomizeChannel channel;
   final CharmCatalog catalog;
+
+  /// Show the first-launch welcome instead of the tabs.
+  final bool welcome;
 
   ThemeData _theme(Brightness brightness) => ThemeData(
         colorSchemeSeed: _gold,
@@ -35,7 +48,9 @@ class CustomizeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
-      home: _CustomizeHome(channel: channel, catalog: catalog),
+      home: welcome
+          ? WelcomeFlow(channel: channel, catalog: catalog)
+          : _CustomizeHome(channel: channel, catalog: catalog),
     );
   }
 }
@@ -436,6 +451,44 @@ class _SettingsPageState extends State<_SettingsPage> {
     }
   }
 
+  /// Shows, word for word, what the stats would contain right now.
+  void _showWhatWouldBeShared(BuildContext context) {
+    final payload = UsageStats.payload(widget.settings,
+        appVersion: appVersion, os: Platform.operatingSystem);
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('What would be shared'),
+        content: SizedBox(
+          width: 420,
+          child: payload == null
+              ? const Text('Nothing. Sharing is off, and no ID exists.')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Exactly this, and nothing else:'),
+                    const SizedBox(height: 12),
+                    SelectableText(
+                      const JsonEncoder.withIndent('  ').convert(payload),
+                      style: const TextStyle(
+                          fontFamily: 'Consolas', fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('This version doesn’t send it anywhere.'),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -465,6 +518,23 @@ class _SettingsPageState extends State<_SettingsPage> {
           title: const Text('Works completely offline'),
           subtitle: const Text('The charm makes no network requests. Nothing '
               'about you, your screen or your files leaves this computer.'),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Share anonymous usage stats'),
+          subtitle: const Text('Off unless you turn it on. This version '
+              'doesn’t send anything yet; your choice applies once '
+              'stats are added. Turning it off deletes the random ID.'),
+          value: widget.settings.shareStats,
+          onChanged: (v) => widget.channel.update({'shareStats': v}),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            icon: const Icon(Icons.visibility_outlined, size: 18),
+            label: const Text('See what would be shared'),
+            onPressed: () => _showWhatWouldBeShared(context),
+          ),
         ),
         const SizedBox(height: 16),
         const _SectionTitle('Saved settings'),

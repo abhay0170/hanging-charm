@@ -11,8 +11,9 @@
 namespace app_messages {
 
 // The command-line switch that starts the Customize window instead of the
-// charm.
+// charm, and the one added for the first-launch welcome.
 constexpr wchar_t kCustomizeSwitch[] = L"--customize";
+constexpr wchar_t kWelcomeSwitch[] = L"--welcome";
 
 // WM_COPYDATA tags, so stray messages from elsewhere are ignored.
 constexpr ULONG_PTR kToCharm = 0x43484D31;      // "CHM1"
@@ -21,9 +22,13 @@ constexpr ULONG_PTR kToCustomize = 0x43535A31;  // "CSZ1"
 // Window titles each process finds the other by.
 constexpr wchar_t kCharmTitle[] = L"Charm";
 constexpr wchar_t kCustomizeTitle[] = L"Charm – Customize";
+constexpr wchar_t kWelcomeTitle[] = L"Welcome to Charm";
 
 // The other process's top-level window with |title|, if it is running.
 HWND Find(const wchar_t* title);
+
+// The Customize process's window, whether it shows Customize or the welcome.
+HWND FindCustomize();
 
 // Sends |json| to |target|, tagged |tag|, from |sender|. Returns false if the
 // window is gone.

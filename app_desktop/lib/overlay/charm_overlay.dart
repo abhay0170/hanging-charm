@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import '../charms/charm.dart';
 import '../charms/charm_sprite.dart';
 import '../customize/protocol.dart';
+import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'charm_painter.dart';
@@ -81,6 +82,13 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _applied = _settings.value;
     _apply(null, _applied);
     _settings.addListener(_onSettingsChanged);
+
+    // First launch: show the welcome once. It counts as shown from the
+    // moment it opens, so closing it early doesn't bring it back each time.
+    if (!_settings.value.welcomeCompleted && !_benchSwing) {
+      _settings.update((s) => s.copyWith(welcomeCompleted: true));
+      _channel.openWelcome();
+    }
   }
 
   /// Every change, whoever made it (tray, charm menu, Customize, dragging the
@@ -152,9 +160,13 @@ class _CharmOverlayState extends State<CharmOverlay> {
       case CustomizeProtocol.update:
         final changes = message[CustomizeProtocol.changes];
         if (changes is! Map) return;
-        // Through fromJson, so Customize gets the same checks as the file.
-        _settings.update((s) => AppSettings.fromJson(
-            {...s.toJson(), ...changes.cast<String, Object?>()}));
+        // Through fromJson, so Customize gets the same checks as the file,
+        // and the stats id follows consent (made on opt-in, deleted on
+        // opt-out). Customize can't set the id itself.
+        final incoming = {...changes.cast<String, Object?>()}
+          ..remove('statsId');
+        _settings.update((s) => UsageStats.withConsentApplied(
+            AppSettings.fromJson({...s.toJson(), ...incoming})));
     }
   }
 

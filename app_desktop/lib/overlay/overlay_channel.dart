@@ -101,6 +101,9 @@ class OverlayChannel {
   /// Opens the Customize window, or brings it to the front.
   Future<void> openCustomize() => _call('openCustomize');
 
+  /// Opens the first-launch welcome (the Customize window in welcome mode).
+  Future<void> openWelcome() => _call('openWelcome');
+
   /// Sends [message] to the Customize window, if it is open. It runs in a
   /// separate process, so messages travel as JSON.
   Future<void> toCustomize(Map<String, Object?> message) =>
