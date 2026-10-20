@@ -203,6 +203,22 @@ void main() {
     expect(a.charmY, closeTo(b.charmY, 1e-6));
   });
 
+  test('reports the charm speed: fast at the bottom, zero at rest', () {
+    final sim = RopeSim(anchorX: 0, anchorY: 0, startAngle: 35 * deg);
+    expect(sim.charmSpeed, 0);
+    var fastest = 0.0;
+    run(sim, 1.2, () => fastest = math.max(fastest, sim.charmSpeed));
+    // A pendulum let go at 35 degrees passes the bottom at about
+    // sqrt(2 g L (1 - cos 35)).
+    final expected = math.sqrt(2 *
+        RopeStyle.thread.gravity *
+        RopeStyle.thread.restLength *
+        (1 - math.cos(35 * deg)));
+    expect(fastest, closeTo(expected, expected * 0.2));
+    run(sim, 15);
+    expect(sim.charmSpeed, 0);
+  });
+
   test('a sleeping rope does no work until woken', () {
     final sim = RopeSim(anchorX: 0, anchorY: 0);
     run(sim, 2);

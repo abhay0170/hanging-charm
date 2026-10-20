@@ -122,6 +122,19 @@ class RopeSim {
     return math.atan2(_px[n] - _px[n - 1], _py[n] - _py[n - 1]);
   }
 
+  /// How fast the charm moved over the last step, in logical pixels per
+  /// second.
+  double get charmSpeed {
+    final n = _px.length - 1;
+    final dx = _px[n] - _ox[n];
+    final dy = _py[n] - _oy[n];
+    return math.sqrt(dx * dx + dy * dy) / dt;
+  }
+
+  /// Whether the anchor is still gliding toward where it was moved to.
+  bool get anchorMoving =>
+      _anchorX != _anchorTargetX || _anchorY != _anchorTargetY;
+
   /// Angle of the charm from straight below the anchor, in radians.
   double get swingAngle =>
       math.atan2(charmX - _anchorX, charmY - _anchorY);
@@ -450,7 +463,7 @@ class RopeSim {
   }
 
   void _updateSleep() {
-    if (_grabbed || _anchorX != _anchorTargetX || _anchorY != _anchorTargetY) {
+    if (_grabbed || anchorMoving) {
       _stillSteps = 0;
       return;
     }

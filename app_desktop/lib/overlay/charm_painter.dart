@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:charm_physics/charm_physics.dart';
 import 'package:flutter/foundation.dart';
@@ -22,11 +23,74 @@ Offset _upFromCharm(RopeSim sim) {
   return Offset(-math.sin(a), -math.cos(a));
 }
 
-/// Draws the anchor pin, the rope in its style, and a gold bead charm.
+/// The bead (shadow, gradient body, rim, highlight) drawn once into an image
+/// at the screen's pixel density. Its light comes from a fixed direction, so
+/// it never needs redrawing while it swings: each frame only places it.
+class CharmSprite {
+  CharmSprite(this.devicePixelRatio) : image = _render(devicePixelRatio);
+
+  /// Room around the bead for its blurred shadow.
+  static const double _pad = 12;
+  static const double extent = (charmRadius + _pad) * 2;
+
+  final double devicePixelRatio;
+  final ui.Image image;
+
+  static ui.Image _render(double dpr) {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(dpr);
+    const center = Offset(extent / 2, extent / 2);
+
+    // Soft shadow so the charm reads on light and dark backgrounds.
+    canvas.drawCircle(
+      center.translate(0, 3),
+      charmRadius,
+      Paint()
+        ..color = const Color(0x55000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    final body = Rect.fromCircle(center: center, radius: charmRadius);
+    canvas.drawCircle(
+      center,
+      charmRadius,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.35, -0.45),
+          radius: 0.95,
+          colors: [Color(0xFFFFF3C4), Color(0xFFE0A93B), Color(0xFF7A4E0E)],
+          stops: [0, 0.45, 1],
+        ).createShader(body),
+    );
+    canvas.drawCircle(
+      center,
+      charmRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = const Color(0xFF6B430B),
+    );
+    // Specular highlight.
+    canvas.drawOval(
+      Rect.fromCenter(center: center.translate(-7, -9), width: 12, height: 7),
+      Paint()..color = const Color(0xCCFFFFFF),
+    );
+
+    final size = (extent * dpr).ceil();
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(size, size);
+    picture.dispose();
+    return image;
+  }
+
+  void dispose() => image.dispose();
+}
+
+/// Draws the anchor pin, the rope in its style, and the charm.
 class CharmPainter extends CustomPainter {
-  CharmPainter(this.sim, {required Listenable super.repaint});
+  CharmPainter(this.sim, this.sprite, {required Listenable super.repaint});
 
   final RopeSim sim;
+  final CharmSprite sprite;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -41,6 +105,7 @@ class CharmPainter extends CustomPainter {
       points.add(p);
     }
     points.add(ringTop);
+
     switch (sim.style.id) {
       case 'gold_chain':
         _paintChain(canvas, points);
@@ -50,7 +115,7 @@ class CharmPainter extends CustomPainter {
         _paintThread(canvas, points);
     }
     _paintAnchor(canvas, points.first);
-    _paintCharm(canvas);
+    _paintCharm(canvas, center);
   }
 
   Path _smoothPath(List<Offset> p) {
@@ -104,24 +169,26 @@ class CharmPainter extends CustomPainter {
             Rect.fromCenter(center: Offset.zero, width: length, height: 6),
             face);
       } else {
-        canvas.drawLine(
-            Offset(-length / 2, 0), Offset(length / 2, 0), edge);
+        canvas.drawLine(Offset(-length / 2, 0), Offset(length / 2, 0), edge);
       }
       canvas.restore();
     }
   }
 
+  /// A glow built from wide, faint strokes under a bright core. Looks like
+  /// a blur but costs a fraction of one, every frame.
   void _paintNeon(Canvas canvas, List<Offset> p) {
     final path = _smoothPath(p);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7
-        ..strokeCap = StrokeCap.round
-        ..color = const Color(0x99FF4FB8)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
+    for (final (width, alpha) in const [(9.0, 0x22), (6.0, 0x44), (3.5, 0x88)]) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeCap = StrokeCap.round
+          ..color = Color.fromARGB(alpha, 0xFF, 0x4F, 0xB8),
+      );
+    }
     canvas.drawPath(
       path,
       Paint()
@@ -141,9 +208,7 @@ class CharmPainter extends CustomPainter {
         pin.deflate(1.5), Paint()..color = const Color(0xFF55555E));
   }
 
-  void _paintCharm(Canvas canvas) {
-    final center = charmCenter(sim);
-
+  void _paintCharm(Canvas canvas, Offset center) {
     // Jump ring between the rope and the charm.
     final ringCenter =
         center + _upFromCharm(sim) * (charmRadius + ringRadius);
@@ -156,43 +221,19 @@ class CharmPainter extends CustomPainter {
         ..color = const Color(0xFFC8962E),
     );
 
-    // Soft shadow so the charm reads on light and dark wallpapers.
-    canvas.drawCircle(
-      center.translate(0, 3),
-      charmRadius,
-      Paint()
-        ..color = const Color(0x55000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-
-    final body = Rect.fromCircle(center: center, radius: charmRadius);
-    canvas.drawCircle(
-      center,
-      charmRadius,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.35, -0.45),
-          radius: 0.95,
-          colors: [Color(0xFFFFF3C4), Color(0xFFE0A93B), Color(0xFF7A4E0E)],
-          stops: [0, 0.45, 1],
-        ).createShader(body),
-    );
-    canvas.drawCircle(
-      center,
-      charmRadius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = const Color(0xFF6B430B),
-    );
-    // Specular highlight.
-    canvas.drawOval(
+    final image = sprite.image;
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
       Rect.fromCenter(
-          center: center.translate(-7, -9), width: 12, height: 7),
-      Paint()..color = const Color(0xCCFFFFFF),
+          center: center,
+          width: CharmSprite.extent,
+          height: CharmSprite.extent),
+      Paint()..filterQuality = FilterQuality.low,
     );
   }
 
   @override
-  bool shouldRepaint(CharmPainter oldDelegate) => oldDelegate.sim != sim;
+  bool shouldRepaint(CharmPainter oldDelegate) =>
+      oldDelegate.sim != sim || oldDelegate.sprite != sprite;
 }

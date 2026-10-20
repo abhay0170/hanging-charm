@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:charm_physics/charm_physics.dart';
@@ -22,8 +23,7 @@ class CharmOverlay extends StatefulWidget {
   State<CharmOverlay> createState() => _CharmOverlayState();
 }
 
-class _CharmOverlayState extends State<CharmOverlay>
-    with SingleTickerProviderStateMixin {
+class _CharmOverlayState extends State<CharmOverlay> {
   /// Extra pixels around the charm and pin that still count as a hit.
   static const double _hitSlop = 6;
   static const double _anchorHitRadius = 12;
@@ -43,8 +43,13 @@ class _CharmOverlayState extends State<CharmOverlay>
     onAnchorMoved: _onAnchorMoved,
   );
 
+  /// Benchmark builds (`--dart-define=BENCH_SWING=true`) start the charm
+  /// swinging from 35 degrees at the top of the screen, so CPU measurements
+  /// see the same swing every run. Normal builds start still.
+  static const _benchSwing = bool.fromEnvironment('BENCH_SWING');
+
   /// Hang from the window being worked in, or from the top of the screen.
-  bool _followWindow = true;
+  bool _followWindow = !_benchSwing;
 
   @override
   void initState() {
@@ -69,11 +74,11 @@ class _CharmOverlayState extends State<CharmOverlay>
     _channel.setFollowActive(follow);
     _closeMenu();
   }
+
   final _repaint = ValueNotifier<int>(0);
-  late final Ticker _ticker = createTicker(_onTick);
+  CharmSprite? _sprite;
 
   RopeSim? _sim;
-  Duration? _lastTick;
   Size _size = Size.zero;
 
   _Drag _drag = _Drag.none;
@@ -87,7 +92,12 @@ class _CharmOverlayState extends State<CharmOverlay>
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _gentleTimer?.cancel();
+    final frame = _frameCallbackId;
+    if (frame != null) {
+      SchedulerBinding.instance.cancelFrameCallbackWithId(frame);
+    }
+    _sprite?.dispose();
     _repaint.dispose();
     super.dispose();
   }
@@ -96,7 +106,11 @@ class _CharmOverlayState extends State<CharmOverlay>
   /// window, not the anchor within it.
   RopeSim _simFor(Size size) {
     // Starts hanging still: every swing comes from the user.
-    return _sim ??= RopeSim(anchorX: size.width / 2, anchorY: 0);
+    return _sim ??= RopeSim(
+      anchorX: size.width / 2,
+      anchorY: 0,
+      startAngle: _benchSwing ? 35 * math.pi / 180 : 0,
+    );
   }
 
   // ---- Dragging the anchor moves the window. ----
@@ -136,27 +150,85 @@ class _CharmOverlayState extends State<CharmOverlay>
   }
 
   // ---- Frame loop: runs only while the rope is awake. ----
+  //
+  // Every frame costs Flutter a few milliseconds whatever is drawn, so the
+  // loop asks for frames itself: every display refresh while the charm
+  // moves briskly or is being handled, about 30 a second once it has been
+  // only gently swaying for a full swing, and none at all once it sleeps.
+
+  /// Below this charm speed (logical px/s) the sway counts as gentle: about
+  /// a 10 degree swing.
+  static const double _gentleSpeed = 160;
+
+  /// The sway must stay gentle this long (about one full swing) before the
+  /// frame rate drops, so the slow ends of a big swing don't count.
+  static const Duration _gentleAfter = Duration(milliseconds: 1300);
+
+  /// Wait before asking for the next frame while gentle. The frame then
+  /// lands on the following display refresh: about 30 fps on a 60 Hz screen.
+  static const Duration _gentleDelay = Duration(milliseconds: 25);
+
+  final _clock = Stopwatch()..start();
+  Duration _lastStep = Duration.zero;
+  Duration _lastBrisk = Duration.zero;
+  bool _running = false;
+  int? _frameCallbackId;
+  Timer? _gentleTimer;
 
   void _wake() {
     _sim?.wake();
-    if (!_ticker.isActive) {
-      _lastTick = null;
-      _ticker.start();
+    if (_running) {
+      _brisk();
+      return;
+    }
+    _running = true;
+    _lastStep = _clock.elapsed;
+    _lastBrisk = _clock.elapsed;
+    _scheduleFrame();
+  }
+
+  void _scheduleFrame() {
+    if (_frameCallbackId != null || _gentleTimer != null) return;
+    _frameCallbackId =
+        SchedulerBinding.instance.scheduleFrameCallback(_onFrame);
+  }
+
+  void _onFrame(Duration _) {
+    _frameCallbackId = null;
+    final sim = _sim;
+    if (sim == null || !mounted) return;
+
+    final now = _clock.elapsed;
+    sim.step((now - _lastStep).inMicroseconds / 1e6);
+    _lastStep = now;
+    _repaint.value++;
+    _syncHitRects();
+
+    final handled = _drag != _Drag.none || sim.anchorMoving;
+    if (sim.asleep && !handled) {
+      _running = false;
+      return;
+    }
+    if (handled || sim.charmSpeed > _gentleSpeed) _lastBrisk = now;
+    if (now - _lastBrisk < _gentleAfter) {
+      _scheduleFrame();
+    } else {
+      _gentleTimer = Timer(_gentleDelay, () {
+        _gentleTimer = null;
+        _scheduleFrame();
+      });
     }
   }
 
-  void _onTick(Duration elapsed) {
-    final sim = _sim;
-    if (sim == null) return;
-    final last = _lastTick;
-    _lastTick = elapsed;
-    if (last != null) {
-      sim.step((elapsed - last).inMicroseconds / 1e6);
-    }
-    _repaint.value++;
-    _syncHitRects();
-    if (sim.asleep && _drag == _Drag.none) {
-      _ticker.stop();
+  /// Something new happened (a touch, the window moved): go straight back to
+  /// full frame rate.
+  void _brisk() {
+    _lastBrisk = _clock.elapsed;
+    final timer = _gentleTimer;
+    if (timer != null) {
+      timer.cancel();
+      _gentleTimer = null;
+      _scheduleFrame();
     }
   }
 
@@ -355,10 +427,16 @@ class _CharmOverlayState extends State<CharmOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final dpr = View.of(context).devicePixelRatio;
+    if (_sprite?.devicePixelRatio != dpr) {
+      _sprite?.dispose();
+      _sprite = CharmSprite(dpr);
+    }
+    final sprite = _sprite!;
     return LayoutBuilder(builder: (context, constraints) {
       _size = constraints.biggest;
       final sim = _simFor(_size);
-      if (!_ticker.isActive && !sim.asleep) _wake();
+      if (!_running && !sim.asleep) _wake();
       return Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: _onPointerDown,
@@ -368,8 +446,10 @@ class _CharmOverlayState extends State<CharmOverlay>
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(
-                painter: CharmPainter(sim, repaint: _repaint),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: CharmPainter(sim, sprite, repaint: _repaint),
+                ),
               ),
             ),
             if (_menuRect != null) _buildMenu(),

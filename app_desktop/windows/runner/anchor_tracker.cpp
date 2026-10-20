@@ -163,6 +163,10 @@ bool AnchorTracker::IsUsable(HWND hwnd) const {
 }
 
 bool AnchorTracker::IsFullScreen(HWND hwnd) const {
+  // A maximised window covers the whole monitor too when the taskbar
+  // auto-hides, but it is an ordinary window to hang from. Full-screen video,
+  // games and F11 browsers size themselves to the monitor without maximising.
+  if (IsZoomed(hwnd)) return false;
   MONITORINFO monitor = {sizeof(monitor)};
   GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor);
   const RECT frame = VisibleFrame(hwnd);

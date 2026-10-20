@@ -37,7 +37,7 @@ make the last faint sway stop instead of lingering.
 - An energy cap takes any leftover numerical gain back out of the speed.
 
 ```bash
-dart test                  # 27 tests
+dart test                  # 28 tests
 dart run tool/tune.dart    # swing period, decay and settle time per rope
 dart run tool/bench.dart   # CPU cost: ~0.4% of one core while swinging
 ```

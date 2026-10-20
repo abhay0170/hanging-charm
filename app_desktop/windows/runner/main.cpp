@@ -28,8 +28,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // A window just big enough for the charm to swing in, hanging from the top
   // of the primary display with its anchor at the window's top centre.
   // Dragging the anchor moves the whole window.
-  constexpr double kWindowWidth = 520;
-  constexpr double kWindowHeight = 420;
+  // The bead's centre is at most one rope length (180) from the anchor and
+  // its image reaches 34 further, so 214 each way covers every swing.
+  constexpr double kWindowWidth = 460;
+  constexpr double kWindowHeight = 240;
   constexpr double kAnchorAt = 0.72;  // fraction of the screen width
   HMONITOR monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
   MONITORINFO monitor_info = {sizeof(monitor_info)};

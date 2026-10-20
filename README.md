@@ -47,7 +47,7 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
   clickable areas (bead, pin, menu) only when they move. A 30 ms native timer
   checks the cursor against them and turns click-through off only while the
   cursor is over one. Dart hears about the cursor only when it comes near.
-- The window is 520×420 logical px, just big enough for the swing, with the
+- The window is 460×240 logical px, just big enough for the swing, with the
   anchor at its top centre. Moving the anchor moves the whole window, and the
   physics treats that as the anchor moving (`RopeSim.shiftFrame`).
 - `AnchorTracker` (`windows/runner/anchor_tracker.cpp`) picks the anchor. It
@@ -58,7 +58,9 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
   - Taskbar, Start, Alt+Tab and tray pop-ups: the charm stays where it is.
   - The desktop: back to the top of the screen.
   - Tool windows, cloaked, minimised or tiny windows: ignored.
-  - A window covering the whole monitor: the charm hides.
+  - A window covering the whole monitor that isn't maximised (video, games,
+    F11): the charm hides. Maximised windows count as normal, because with an
+    auto-hiding taskbar they cover the monitor too.
 - When the window it hangs from moves, the overlay follows at once. Dart gets
   `anchorMoved` and the rope swings. Jumping to a different window is not a
   move, so the charm goes along without swinging.
@@ -75,23 +77,35 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 | Grabbing the charm doesn't take focus from the active app | ✅ |
 | Grab, drag, throw, brush-nudge, rope style switch | ✅ |
 | Drag the pin → window follows, charm trails and settles | ✅ |
-| Physics tests (swing never exceeds the user's motion, natural decay, stretch ≤ 1.02×, fixed 240 Hz, sleep, throw speed, anchor drag, nudge proportional) | ✅ 27/27 |
+| Physics tests (swing never exceeds the user's motion, natural decay, stretch ≤ 1.02×, fixed 240 Hz, sleep, throw speed, anchor drag, nudge proportional, charm speed) | ✅ 28/28 |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |
 | Minimised window: charm moves to the next window in front | ✅ |
 | CPU at rest (charm asleep) | ✅ ~0.4–1.2% of one core on the screen edge · ⚠️ 1.25% while attached to a busy window (target < 1%) |
-| CPU while swinging | ⚠️ ~32–44% of one core (≈3–4% of the 12-core CPU), only for the few seconds it swings |
+| CPU while swinging briskly (60 fps) | ⚠️ ~35–75% of one core depending on machine state (≈3–6% of the 12-core CPU), only for the first few seconds of a swing |
+| CPU while gently swaying (30 fps) | 24% of one core, was 37% at 60 fps (−35%, 4 alternating runs) |
 | Physics on its own | 0.2–0.4% of one core |
 | Memory | ~145–200 MB working set |
 
-**Where the swinging cost goes:** Flutter's own per-frame cost is about 19% of
-one core even when drawing one circle. The rope and bead drawing adds about
-12%. Shrinking the window from full width to 520 px saved about 14 points.
-Not the cause: physics, the blurred shadow, the layered window style.
-Ideas for Phase 1: cache the charm as an image, use a simpler rope path,
-lower the frame rate in the last part of the settle, and 30 fps in battery
-saver.
+**Where the swinging cost goes:** almost all of it is Flutter's fixed cost
+per frame. The physics is 0.4% of one core. Drawing the bead once and reusing
+the image, and shrinking the window from 520×420 to 460×240, made no
+measurable difference, so the drawing itself is cheap.
+
+**What helped:** the overlay paces its own frames instead of using a ticker.
+It runs every display refresh while the charm moves briskly or is held, about
+30 fps once it has been only gently swaying (under ~10°) for a full swing,
+and stops completely when it sleeps. A touch or a window move goes straight
+back to full rate.
+
+**Measuring:** readings drift by ±15 points with the machine's state (CPU
+clock, other apps), so compare builds alternately. Build with
+`--dart-define=BENCH_SWING=true` (starts swinging from 35° at the screen top)
+and alternate old and new builds several times.
+
+**Further options, if needed:** 30 fps throughout in a battery-saver mode, or
+test Flutter's Impeller renderer on Windows once it's available in release.
 
 ## Not done yet (rest of Phase 0)
 
