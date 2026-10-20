@@ -45,6 +45,12 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   hangs at once. Saved charms live in `%APPDATA%\Charm\charms\` (one PNG
   each plus `my_charms.json`) and can be deleted from the Library. The
   original photo is never copied or changed.
+- **Charms from a name or word** (My charms → New from a name): English,
+  Hindi or Tamil, up to 14 letters. Shapes: letters on a nameplate bar, or
+  a round, bar or heart tag with the name stamped in. Finishes: gold,
+  silver, rose gold or black. Lettering: classic (Georgia), modern (Segoe UI)
+  or script (Segoe Script). Hindi and Tamil always use Nirmala UI, which
+  shapes those scripts properly. The text shrinks to fit its plate or tag.
 - **13 charms** in three collections (Classic, Luck, Nature), chosen in
   Customize → Library. Each has its own size, weight and hang point.
   These are simple original placeholders. See "Adding charms" below.
@@ -168,6 +174,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Stats consent: off by default, ID only on opt-in and deleted on opt-out, fixed field list (6 tests) | ✅ · nothing is sent (no server yet) |
 | Photo charms: Windows file dialog → editor → saved PNG → hangs live on the real rope → listed in My charms → deleted (switches to the bead first) | ✅ |
 | Photo charm tests: photo always covers the frame, PNG size and transparency per shape, storage round trip, unsafe or missing entries ignored (11) | ✅ |
+| Name charms on screen: "Lucky" letters (gold), அம்மா heart tag (correct Tamil shaping), माँ silver bar tag (correct chandrabindu), saved and hanging, then deleted | ✅ |
+| Name charm tests: script detection, Indic font choice, cut by visible letters, text fits every shape, every shape renders (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |

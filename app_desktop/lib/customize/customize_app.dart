@@ -11,6 +11,7 @@ import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
+import 'name_charm_editor.dart';
 import 'photo_charm_editor.dart';
 import 'rope_preview.dart';
 import 'welcome_flow.dart';
@@ -108,6 +109,15 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
     widget.channel.update({'charm': charm.id});
   }
 
+  /// Type a name, choose its look, save it, and hang it.
+  Future<void> _newFromName() async {
+    final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
+        builder: (_) => NameCharmEditor(userCharms: _userCharms)));
+    if (charm == null || !mounted) return;
+    _refreshCatalog();
+    widget.channel.update({'charm': charm.id});
+  }
+
   Future<void> _delete(Charm charm) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -187,6 +197,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                           catalog: _catalog,
                           channel: channel,
                           onNewFromPhoto: _newFromPhoto,
+                          onNewFromName: _newFromName,
                           onDelete: _delete),
                       1 => _RopesPage(
                           settings: settings,
@@ -323,6 +334,7 @@ class _LibraryPage extends StatelessWidget {
     required this.catalog,
     required this.channel,
     required this.onNewFromPhoto,
+    required this.onNewFromName,
     required this.onDelete,
   });
 
@@ -330,6 +342,7 @@ class _LibraryPage extends StatelessWidget {
   final CharmCatalog catalog;
   final CustomizeChannel channel;
   final VoidCallback onNewFromPhoto;
+  final VoidCallback onNewFromName;
   final ValueChanged<Charm> onDelete;
 
   @override
@@ -379,9 +392,21 @@ class _LibraryPage extends StatelessWidget {
       children: [
         section(
           'My charms',
-          'Made by you, from your own photos. They stay on this computer.',
+          'Made by you, from your photos and words. They stay on this '
+              'computer.',
           [
-            _NewCharmCard(onTap: onNewFromPhoto),
+            _NewCharmCard(
+              icon: Icons.add_photo_alternate_outlined,
+              title: 'New from a photo',
+              caption: 'Put someone, or something, in a frame.',
+              onTap: onNewFromPhoto,
+            ),
+            _NewCharmCard(
+              icon: Icons.text_fields,
+              title: 'New from a name',
+              caption: 'A name or word, in English, Hindi or Tamil.',
+              onTap: onNewFromName,
+            ),
             for (final charm in mine)
               Stack(
                 children: [
@@ -408,10 +433,18 @@ class _LibraryPage extends StatelessWidget {
   }
 }
 
-/// The card that starts a new charm from a photo.
+/// A card that starts making a new charm.
 class _NewCharmCard extends StatelessWidget {
-  const _NewCharmCard({required this.onTap});
+  const _NewCharmCard({
+    required this.icon,
+    required this.title,
+    required this.caption,
+    required this.onTap,
+  });
 
+  final IconData icon;
+  final String title;
+  final String caption;
   final VoidCallback onTap;
 
   @override
@@ -432,15 +465,13 @@ class _NewCharmCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_photo_alternate_outlined,
-                  size: 36, color: scheme.primary),
+              Icon(icon, size: 36, color: scheme.primary),
               const SizedBox(height: 10),
-              Text('New from a photo',
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 4),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Put someone, or something, in a frame.',
+                child: Text(caption,
                     textAlign: TextAlign.center,
                     style: Theme.of(context)
                         .textTheme
