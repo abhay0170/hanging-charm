@@ -6,6 +6,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
 
 import 'photo_charm.dart' show FrameFinish;
+import 'shapes.dart';
 
 /// What the name hangs as.
 enum NameShape {
@@ -105,7 +106,7 @@ class NameCharmDesign {
 
   // Laid out in an art box: a bail (the small loop the ring goes through)
   // on top, then the plate or tag.
-  static const double _bail = 14;
+  static const double _bail = bailHeight;
   static const double _margin = 4;
 
   /// The artwork's proportions.
@@ -149,30 +150,9 @@ class NameCharmDesign {
       NameShape.roundTag => Path()..addOval(r),
       NameShape.barTag => Path()
         ..addRRect(RRect.fromRectAndRadius(r, Radius.circular(r.height / 2))),
-      NameShape.heartTag => _heart(r),
+      NameShape.heartTag => heartPath(r),
       NameShape.letters => Path(),
     };
-  }
-
-  static Path _heart(Rect r) {
-    Offset p(double x, double y) =>
-        Offset(r.left + r.width * x / 100, r.top + r.height * y / 100);
-    final a = p(50, 96);
-    return Path()
-      ..moveTo(a.dx, a.dy)
-      ..cubicTo(p(20, 74).dx, p(20, 74).dy, p(2, 54).dx, p(2, 54).dy,
-          p(2, 32).dx, p(2, 32).dy)
-      ..cubicTo(p(2, 14).dx, p(2, 14).dy, p(14, 2).dx, p(14, 2).dy,
-          p(28, 2).dx, p(28, 2).dy)
-      ..cubicTo(p(38, 2).dx, p(38, 2).dy, p(46, 8).dx, p(46, 8).dy,
-          p(50, 18).dx, p(50, 18).dy)
-      ..cubicTo(p(54, 8).dx, p(54, 8).dy, p(62, 2).dx, p(62, 2).dy,
-          p(72, 2).dx, p(72, 2).dy)
-      ..cubicTo(p(86, 2).dx, p(86, 2).dy, p(98, 14).dx, p(98, 14).dy,
-          p(98, 32).dx, p(98, 32).dy)
-      ..cubicTo(p(98, 54).dx, p(98, 54).dy, p(80, 74).dx, p(80, 74).dy,
-          a.dx, a.dy)
-      ..close();
   }
 
   /// The text set at the largest size that fits [textArea], painted with
@@ -204,33 +184,14 @@ class NameCharmDesign {
     return make(probeSize * fit);
   }
 
-  Paint _metal(Rect bounds) => Paint()
-    ..shader = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [finish.light, finish.middle, finish.dark],
-      stops: const [0, 0.5, 1],
-    ).createShader(bounds);
+  Paint _metal(Rect bounds) => metalPaint(finish, bounds);
 
   /// Draws the charm into [size] (any size with the art box's proportions).
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.scale(size.width / artBox.width, size.height / artBox.height);
     final metal = _metal(Offset.zero & artBox);
-
-    // Bail on top.
-    final bailCenter = Offset(artBox.width / 2, _bail / 2 + 1);
-    canvas.drawCircle(
-        bailCenter,
-        5,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..shader = metal.shader);
-    canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(artBox.width / 2, _bail + 1), width: 5, height: 6),
-        metal);
+    paintBail(canvas, artBox.width, metal);
 
     final area = textArea;
     if (shape == NameShape.letters) {

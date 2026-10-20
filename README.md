@@ -51,6 +51,15 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   silver, rose gold or black. Lettering: classic (Georgia), modern (Segoe UI)
   or script (Segoe Script). Hindi and Tamil always use Nirmala UI, which
   shapes those scripts properly. The text shrinks to fit its plate or tag.
+- **Design your own** (My charms → Design your own): layers of photos,
+  words (English, Hindi, Tamil) and stickers (18 Material symbols), each
+  moved by dragging, resized with the scroll wheel or a slider, turned,
+  recoloured (metal, white, black, red, blue) and ordered forward or back.
+  They sit on a base (none, circle, rounded square, heart, oval, bar) with a
+  fill (gold, silver, rose gold, or ivory, red, blue, green or midnight
+  enamel), a border (none, plain rim, beaded, double) and a metal for the
+  rim and loop. Layers are clipped to the base, and float freely with no
+  base.
 - **13 charms** in three collections (Classic, Luck, Nature), chosen in
   Customize → Library. Each has its own size, weight and hang point.
   These are simple original placeholders. See "Adding charms" below.
@@ -176,6 +185,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Photo charm tests: photo always covers the frame, PNG size and transparency per shape, storage round trip, unsafe or missing entries ignored (11) | ✅ |
 | Name charms on screen: "Lucky" letters (gold), அம்மா heart tag (correct Tamil shaping), माँ silver bar tag (correct chandrabindu), saved and hanging, then deleted | ✅ |
 | Name charm tests: script detection, Indic font choice, cut by visible letters, text fits every shape, every shape renders (5) | ✅ |
+| Designer on screen: stickers, words, drag to move, midnight enamel with beaded border, saved and hanging, then deleted | ✅ · once, the controls list jumped back to the top between two test steps; not reproduced since |
+| Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
 | Full-screen window hides the charm, and it comes back after | ✅ |

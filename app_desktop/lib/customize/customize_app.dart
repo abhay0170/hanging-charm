@@ -11,6 +11,7 @@ import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
+import 'charm_designer.dart';
 import 'name_charm_editor.dart';
 import 'photo_charm_editor.dart';
 import 'rope_preview.dart';
@@ -118,13 +119,23 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
     widget.channel.update({'charm': charm.id});
   }
 
+  /// Build one from layers, save it, and hang it.
+  Future<void> _designYourOwn() async {
+    final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
+        builder: (_) => CharmDesigner(
+            userCharms: _userCharms, pickImage: widget.channel.pickImage)));
+    if (charm == null || !mounted) return;
+    _refreshCatalog();
+    widget.channel.update({'charm': charm.id});
+  }
+
   Future<void> _delete(Charm charm) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete “${charm.name}”?'),
-        content: const Text('It will be removed from your charms. The photo '
-            'you made it from isn’t touched.'),
+        content: const Text('It will be removed from your charms. Any photo '
+            'you used for it isn’t touched.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -198,6 +209,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                           channel: channel,
                           onNewFromPhoto: _newFromPhoto,
                           onNewFromName: _newFromName,
+                          onDesign: _designYourOwn,
                           onDelete: _delete),
                       1 => _RopesPage(
                           settings: settings,
@@ -335,6 +347,7 @@ class _LibraryPage extends StatelessWidget {
     required this.channel,
     required this.onNewFromPhoto,
     required this.onNewFromName,
+    required this.onDesign,
     required this.onDelete,
   });
 
@@ -343,6 +356,7 @@ class _LibraryPage extends StatelessWidget {
   final CustomizeChannel channel;
   final VoidCallback onNewFromPhoto;
   final VoidCallback onNewFromName;
+  final VoidCallback onDesign;
   final ValueChanged<Charm> onDelete;
 
   @override
@@ -406,6 +420,12 @@ class _LibraryPage extends StatelessWidget {
               title: 'New from a name',
               caption: 'A name or word, in English, Hindi or Tamil.',
               onTap: onNewFromName,
+            ),
+            _NewCharmCard(
+              icon: Icons.layers_outlined,
+              title: 'Design your own',
+              caption: 'Photos, words and stickers on a base you choose.',
+              onTap: onDesign,
             ),
             for (final charm in mine)
               Stack(
