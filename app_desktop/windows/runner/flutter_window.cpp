@@ -1,11 +1,13 @@
 #include "flutter_window.h"
 
 #include <flutter/standard_method_codec.h>
+#include <flutter_windows.h>
 
 #include <algorithm>
 #include <cmath>
 #include <optional>
 
+#include "app_messages.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "login_item.h"
 
@@ -145,6 +147,22 @@ void FlutterWindow::HandleOverlayCall(
       return;
     }
     result->Success(flutter::EncodableValue(login_item::SetEnabled(*enabled)));
+  } else if (method == "openCustomize") {
+    OpenCustomize();
+    result->Success();
+  } else if (method == "toCustomize") {
+    // A JSON message for the Customize window, if it is open.
+    const auto* json = std::get_if<std::string>(call.arguments());
+    if (!json) {
+      result->Error("bad_args", "toCustomize expects a JSON string");
+      return;
+    }
+    if (!customize_ || !IsWindow(customize_)) {
+      customize_ = app_messages::Find(app_messages::kCustomizeTitle);
+    }
+    app_messages::Send(customize_, GetHandle(), app_messages::kToCustomize,
+                       *json);
+    result->Success();
   } else if (method == "quit") {
     PostMessage(GetHandle(), WM_CLOSE, 0, 0);
     result->Success();
@@ -162,9 +180,34 @@ void FlutterWindow::UpdateVisibility() {
   }
 }
 
+void FlutterWindow::OpenCustomize() {
+  HWND open = app_messages::Find(app_messages::kCustomizeTitle);
+  if (open) {
+    if (IsIconic(open)) ShowWindow(open, SW_RESTORE);
+    SetForegroundWindow(open);
+    return;
+  }
+  wchar_t exe[MAX_PATH] = {};
+  GetModuleFileNameW(nullptr, exe, MAX_PATH);
+  std::wstring command =
+      L"\"" + std::wstring(exe) + L"\" " + app_messages::kCustomizeSwitch;
+  STARTUPINFOW startup = {sizeof(startup)};
+  PROCESS_INFORMATION process = {};
+  if (CreateProcessW(exe, command.data(), nullptr, nullptr, FALSE, 0, nullptr,
+                     nullptr, &startup, &process)) {
+    // Let its window come to the front; we were just clicked, it was not.
+    AllowSetForegroundWindow(process.dwProcessId);
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+  }
+}
+
 void FlutterWindow::OnTrayCommand(TrayIcon::Command command) {
   const char* name = nullptr;
   switch (command) {
+    case TrayIcon::Command::kOpenCustomize:
+      OpenCustomize();
+      return;
     case TrayIcon::Command::kToggleLaunchAtLogin:
       login_item::SetEnabled(!login_item::IsEnabled());
       return;
@@ -299,6 +342,20 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+    case WM_COPYDATA: {
+      // A JSON message from the Customize window.
+      std::string json;
+      if (!app_messages::Receive(wparam, lparam, app_messages::kToCharm,
+                                 &json)) {
+        return FALSE;
+      }
+      customize_ = reinterpret_cast<HWND>(wparam);
+      if (overlay_channel_) {
+        overlay_channel_->InvokeMethod(
+            "fromCustomize", std::make_unique<flutter::EncodableValue>(json));
+      }
+      return TRUE;
+    }
     case WM_TIMER:
       if (wparam == kCursorTimer) {
         CheckCursor();

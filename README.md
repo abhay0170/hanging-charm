@@ -11,8 +11,9 @@ charm_app/
 └── app_desktop/              Flutter desktop app (Windows overlay implemented)
     ├── lib/overlay/          overlay widget, painter, native channel
     ├── lib/settings/         saved settings (JSON, no plugins)
+    ├── lib/customize/        Customize window UI and its link to the charm
     └── windows/runner/       overlay window, window tracking, tray icon,
-                              launch at login (C++)
+                              launch at login, Customize process (C++)
 ```
 
 ## Run it (Windows)
@@ -35,8 +36,13 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
 - **Full-screen apps** (video, games, F11 browser) hide the charm
 - **Right-click the bead**: Thread / Gold Chain / Neon rope, Hang from
   window (on by default), Quit
-- **Tray icon** (next to the clock): Show charm, Hang from window, Launch at
-  login (off by default), Quit
+- **Tray icon** (next to the clock): Customize…, Show charm, Hang from
+  window, Launch at login (off by default), Quit
+- **Customize window** (tray or right-click → Customize…): Library, Ropes &
+  Layout (rope with previews, hang from window or screen, pin position),
+  Settings (show charm, launch at login, privacy, where settings are saved),
+  About. Changes apply to the charm at once. Ctrl+1–4 switch tabs, Ctrl+W
+  closes.
 
 Your choices (rope, pin position, shown or hidden, hang from window) are
 saved to `%APPDATA%\Charm\settings.json` and come back on the next launch.
@@ -73,6 +79,17 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 - When the window it hangs from moves, the overlay follows at once. Dart gets
   `anchorMoved` and the rope swings. Jumping to a different window is not a
   move, so the charm goes along without swinging.
+- **Customize runs as a separate process**: the same exe started with
+  `--customize`. It opens in about 2–2.5 s and uses about 190 MB while
+  open, and all of that is freed when it closes. Hosting it as a second
+  Flutter engine inside the charm's process leaked about 90 MB on every
+  open, so the charm kept growing (130 → 240 → 330 → 410 MB). The two
+  processes exchange JSON strings over `WM_COPYDATA`
+  (`windows/runner/app_messages.h`), and each side accepts messages only
+  from a copy of the same exe. The charm owns the settings: Customize sends
+  `update` with the changed fields and gets `state` back, and the tray,
+  right-click menu and Customize all go through one apply step
+  (`CharmOverlay._apply`).
 - The charm's centre is the rope's last particle, so the bead you see obeys
   the physics limits exactly. It used to hang 30 px below the rope's end,
   which acted as a longer lever and swung about 17% further.
@@ -94,6 +111,8 @@ No Flutter plugins are used, so Windows Developer Mode is not needed.
 | Tray menu: show/hide, hang from window, launch at login on/off, quit | ✅ |
 | Settings saved and restored across a restart (rope, pin at 40%, screen top) | ✅ · 6 settings tests (defaults, round trip, batched writes, damaged file, bad values) |
 | Second copy exits, one charm only | ✅ |
+| Customize: opens from tray, changes apply live both ways (rope, show/hide), tabs and shortcuts work | ✅ |
+| Customize open/close ×3: charm stays at 132 MB; Customize process ~190 MB while open, gone after | ✅ |
 | CPU at rest (charm asleep) | ✅ ~0.4–1.2% of one core on the screen edge · ⚠️ 1.25% while attached to a busy window (target < 1%) |
 | CPU while swinging briskly (60 fps) | ⚠️ ~35–75% of one core depending on machine state (≈3–6% of the 12-core CPU), only for the first few seconds of a swing |
 | CPU while gently swaying (30 fps) | 24% of one core, was 37% at 60 fps (−35%, 4 alternating runs) |

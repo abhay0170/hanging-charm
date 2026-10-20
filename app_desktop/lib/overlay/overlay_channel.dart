@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 
 /// Talks to the native overlay window (windows/runner/flutter_window.cpp).
@@ -17,6 +19,7 @@ class OverlayChannel {
     this.onCursorAway,
     this.onAnchorMoved,
     this.onTrayCommand,
+    this.onCustomizeMessage,
   }) {
     _channel.setMethodCallHandler(_handle);
   }
@@ -36,6 +39,9 @@ class OverlayChannel {
   /// Something was picked from the tray menu: `toggleVisible`,
   /// `toggleFollow` or `quit`. (Launch at login is handled natively.)
   final void Function(String command)? onTrayCommand;
+
+  /// A message from the Customize window (see `customize/protocol.dart`).
+  final void Function(Map<String, Object?> message)? onCustomizeMessage;
 
   bool _supported = true;
   List<Rect> _sentRects = const [];
@@ -92,6 +98,14 @@ class OverlayChannel {
   Future<void> setAnchorFractions(double window, double screen) =>
       _call('setAnchorFractions', Float64List.fromList([window, screen]));
 
+  /// Opens the Customize window, or brings it to the front.
+  Future<void> openCustomize() => _call('openCustomize');
+
+  /// Sends [message] to the Customize window, if it is open. It runs in a
+  /// separate process, so messages travel as JSON.
+  Future<void> toCustomize(Map<String, Object?> message) =>
+      _call('toCustomize', jsonEncode(message));
+
   /// Whether the app starts when the user signs in.
   Future<bool> getLaunchAtLogin() async =>
       await _call('getLaunchAtLogin') == true;
@@ -115,6 +129,13 @@ class OverlayChannel {
         onCursorAway?.call();
       case 'trayCommand':
         onTrayCommand?.call(call.arguments as String);
+      case 'fromCustomize':
+        final json = call.arguments;
+        if (json is! String) return null;
+        final message = jsonDecode(json);
+        if (message is Map) {
+          onCustomizeMessage?.call(message.cast<String, Object?>());
+        }
       case 'anchorMoved':
         final delta = call.arguments as List<Object?>;
         onAnchorMoved?.call(Offset(

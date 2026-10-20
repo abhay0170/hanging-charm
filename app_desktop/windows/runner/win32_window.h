@@ -25,18 +25,25 @@ class Win32Window {
         : width(width), height(height) {}
   };
 
+  enum class Kind {
+    // An ordinary application window: title bar, focusable, in the taskbar.
+    kNormal,
+    // The charm: borderless, transparent, always on top, never focused, out
+    // of the taskbar and Alt+Tab, and click-through until told otherwise.
+    kOverlay,
+  };
+
   Win32Window();
   virtual ~Win32Window();
 
-  // Creates a win32 window with |title| that is positioned and sized using
-  // |origin| and |size|. New windows are created on the default monitor. Window
-  // sizes are specified to the OS in physical pixels, hence to ensure a
-  // consistent size this function will scale the inputted width and height as
-  // as appropriate for the default monitor. The window is invisible until
-  // |Show| is called. Returns true if the window was created successfully.
-  bool Create(const std::wstring& title, const Point& origin, const Size& size);
+  // Creates a window of |kind| with |title| at |origin| with |size|, both in
+  // physical pixels. The window is invisible until |Show| is called. Returns
+  // true if the window was created successfully.
+  bool Create(const std::wstring& title, const Point& origin, const Size& size,
+              Kind kind);
 
-  // Show the current window. Returns true if the window was successfully shown.
+  // Show the current window: a normal window comes to the front, the overlay
+  // appears without taking focus. Returns true if it was successfully shown.
   bool Show();
 
   // Release OS resources associated with window.
@@ -91,6 +98,8 @@ class Win32Window {
   static void UpdateTheme(HWND const window);
 
   bool quit_on_close_ = false;
+
+  Kind kind_ = Kind::kNormal;
 
   // window handle for top level window.
   HWND window_handle_ = nullptr;

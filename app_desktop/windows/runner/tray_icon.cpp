@@ -10,7 +10,8 @@ constexpr UINT kIconId = 1;
 constexpr wchar_t kTooltip[] = L"Charm";
 
 enum MenuId : UINT {
-  kMenuVisible = 1,
+  kMenuCustomize = 1,
+  kMenuVisible,
   kMenuFollow,
   kMenuLaunchAtLogin,
   kMenuQuit,
@@ -64,6 +65,9 @@ TrayIcon::Command TrayIcon::HandleMessage(
 TrayIcon::Command TrayIcon::ShowMenu(const State& state) {
   HMENU menu = CreatePopupMenu();
   auto check = [](bool on) { return on ? MF_CHECKED : MF_UNCHECKED; };
+  AppendMenuW(menu, MF_STRING, kMenuCustomize, L"Customize…");
+  SetMenuDefaultItem(menu, kMenuCustomize, FALSE);
+  AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING | check(state.visible), kMenuVisible,
               L"Show charm");
   AppendMenuW(menu, MF_STRING | check(state.follow), kMenuFollow,
@@ -85,6 +89,8 @@ TrayIcon::Command TrayIcon::ShowMenu(const State& state) {
   DestroyMenu(menu);
 
   switch (picked) {
+    case kMenuCustomize:
+      return Command::kOpenCustomize;
     case kMenuVisible:
       return Command::kToggleVisible;
     case kMenuFollow:

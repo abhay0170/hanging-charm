@@ -116,20 +116,24 @@ Win32Window::~Win32Window() {
 
 bool Win32Window::Create(const std::wstring& title,
                          const Point& origin,
-                         const Size& size) {
+                         const Size& size,
+                         Kind kind) {
   Destroy();
+  kind_ = kind;
 
   const wchar_t* window_class =
       WindowClassRegistrar::GetInstance()->GetWindowClass();
 
-  // The overlay: a borderless, always-on-top window that never takes focus,
-  // stays out of the taskbar and Alt+Tab, and lets clicks through
-  // (WS_EX_LAYERED + WS_EX_TRANSPARENT) until Dart asks for them.
-  // |origin| and |size| are physical pixels.
+  // The overlay lets clicks through with WS_EX_LAYERED + WS_EX_TRANSPARENT
+  // until Dart asks for them.
+  const bool overlay = kind == Kind::kOverlay;
+  const DWORD ex_style = overlay ? WS_EX_LAYERED | WS_EX_TRANSPARENT |
+                                       WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE |
+                                       WS_EX_TOPMOST
+                                 : 0;
+  const DWORD style = overlay ? WS_POPUP : WS_OVERLAPPEDWINDOW;
   HWND window = CreateWindowEx(
-      WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE |
-          WS_EX_TOPMOST,
-      window_class, title.c_str(), WS_POPUP, static_cast<int>(origin.x),
+      ex_style, window_class, title.c_str(), style, static_cast<int>(origin.x),
       static_cast<int>(origin.y), static_cast<int>(size.width),
       static_cast<int>(size.height), nullptr, nullptr,
       GetModuleHandle(nullptr), this);
@@ -138,18 +142,27 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
-  // A layered window is invisible until it is given an opacity. Full opacity
-  // here; the see-through parts come from Flutter drawing transparent pixels
-  // into a frame extended over the whole client area.
-  SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
-  MARGINS margins = {-1};
-  DwmExtendFrameIntoClientArea(window, &margins);
+  if (overlay) {
+    // A layered window is invisible until it is given an opacity. Full
+    // opacity here; the see-through parts come from Flutter drawing
+    // transparent pixels into a frame extended over the whole client area.
+    SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
+    MARGINS margins = {-1};
+    DwmExtendFrameIntoClientArea(window, &margins);
+  } else {
+    UpdateTheme(window);
+  }
 
   return OnCreate();
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNOACTIVATE);
+  if (kind_ == Kind::kOverlay) {
+    return ShowWindow(window_handle_, SW_SHOWNOACTIVATE);
+  }
+  const bool shown = ShowWindow(window_handle_, SW_SHOWNORMAL);
+  SetForegroundWindow(window_handle_);
+  return shown;
 }
 
 // static
@@ -208,7 +221,14 @@ Win32Window::MessageHandler(HWND hwnd,
 
     case WM_MOUSEACTIVATE:
       // Grabbing the charm must not pull focus from the app being typed in.
-      return MA_NOACTIVATE;
+      if (kind_ == Kind::kOverlay) return MA_NOACTIVATE;
+      break;
+
+    case WM_ACTIVATE:
+      if (kind_ == Kind::kNormal && child_content_ != nullptr) {
+        SetFocus(child_content_);
+      }
+      return 0;
 
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
@@ -242,6 +262,8 @@ void Win32Window::SetChildContent(HWND content) {
 
   MoveWindow(content, frame.left, frame.top, frame.right - frame.left,
              frame.bottom - frame.top, true);
+
+  if (kind_ == Kind::kNormal) SetFocus(child_content_);
 }
 
 RECT Win32Window::GetClientArea() {

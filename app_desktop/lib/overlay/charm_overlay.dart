@@ -6,6 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../customize/protocol.dart';
+import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'charm_painter.dart';
 import 'overlay_channel.dart';
@@ -39,13 +41,14 @@ class _CharmOverlayState extends State<CharmOverlay> {
   static const double _brushRadius = charmRadius + 2;
   static const double _brushShare = 0.5;
 
-  static const Size _menuSize = Size(160, 176);
+  static const Size _menuSize = Size(160, 206);
 
   late final _channel = OverlayChannel(
     onCursorNear: _brush,
     onCursorAway: _closeMenu,
     onAnchorMoved: _onAnchorMoved,
     onTrayCommand: _onTrayCommand,
+    onCustomizeMessage: _onCustomizeMessage,
   );
 
   /// Benchmark builds (`--dart-define=BENCH_SWING=true`) start the charm
@@ -55,28 +58,78 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   SettingsStore get _settings => widget.settings;
 
+  /// The settings as last applied to the charm and the native window.
+  late AppSettings _applied;
+
   @override
   void initState() {
     super.initState();
     // Put everything back the way the user left it.
-    final s = _settings.value;
-    _channel.setAnchorFractions(
-        s.windowAnchorFraction, s.screenAnchorFraction);
-    _channel.setFollowActive(!_benchSwing && s.followWindow);
-    _channel.setCharmVisible(s.charmVisible);
+    _applied = _settings.value;
+    _apply(null, _applied);
+    _settings.addListener(_onSettingsChanged);
+  }
+
+  /// Every change, whoever made it (tray, charm menu, Customize, dragging the
+  /// pin), lands in the store first and is applied here, so they can never
+  /// disagree.
+  void _onSettingsChanged() {
+    final next = _settings.value;
+    _apply(_applied, next);
+    _applied = next;
+    _sendStateToCustomize();
+  }
+
+  void _apply(AppSettings? old, AppSettings next) {
+    if (old?.ropeStyleId != next.ropeStyleId) {
+      final sim = _sim;
+      if (sim != null) {
+        sim.style = next.ropeStyle;
+        _wake();
+      }
+    }
+    if (old?.followWindow != next.followWindow) {
+      _channel.setFollowActive(!_benchSwing && next.followWindow);
+    }
+    if (old?.charmVisible != next.charmVisible) {
+      _channel.setCharmVisible(next.charmVisible);
+    }
+    if (old?.windowAnchorFraction != next.windowAnchorFraction ||
+        old?.screenAnchorFraction != next.screenAnchorFraction) {
+      _channel.setAnchorFractions(
+          next.windowAnchorFraction, next.screenAnchorFraction);
+    }
   }
 
   void _onTrayCommand(String command) {
     switch (command) {
       case 'toggleVisible':
-        final visible = !_settings.value.charmVisible;
-        _settings.update((s) => s.copyWith(charmVisible: visible));
-        _channel.setCharmVisible(visible);
+        _settings.update((s) => s.copyWith(charmVisible: !s.charmVisible));
       case 'toggleFollow':
-        _setFollowWindow(!_settings.value.followWindow);
+        _settings.update((s) => s.copyWith(followWindow: !s.followWindow));
       case 'quit':
         _quit();
     }
+  }
+
+  void _onCustomizeMessage(Map<String, Object?> message) {
+    switch (message[CustomizeProtocol.type]) {
+      case CustomizeProtocol.hello:
+        _sendStateToCustomize();
+      case CustomizeProtocol.update:
+        final changes = message[CustomizeProtocol.changes];
+        if (changes is! Map) return;
+        // Through fromJson, so Customize gets the same checks as the file.
+        _settings.update((s) => AppSettings.fromJson(
+            {...s.toJson(), ...changes.cast<String, Object?>()}));
+    }
+  }
+
+  void _sendStateToCustomize() {
+    _channel.toCustomize({
+      CustomizeProtocol.type: CustomizeProtocol.state,
+      CustomizeProtocol.settings: _settings.value.toJson(),
+    });
   }
 
   /// Saves anything still waiting to be written, then closes the app.
@@ -108,8 +161,12 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   void _setFollowWindow(bool follow) {
     _settings.update((s) => s.copyWith(followWindow: follow));
-    _channel.setFollowActive(follow);
     _closeMenu();
+  }
+
+  void _openCustomize() {
+    _closeMenu();
+    _channel.openCustomize();
   }
 
   final _repaint = ValueNotifier<int>(0);
@@ -129,6 +186,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   @override
   void dispose() {
+    _settings.removeListener(_onSettingsChanged);
     _gentleTimer?.cancel();
     final frame = _frameCallbackId;
     if (frame != null) {
@@ -414,7 +472,6 @@ class _CharmOverlayState extends State<CharmOverlay> {
   }
 
   void _setStyle(RopeStyle style) {
-    _sim?.style = style;
     _settings.update((s) => s.copyWith(ropeStyleId: style.id));
     _closeMenu();
     _wake();
@@ -454,6 +511,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            item('Customize…', _openCustomize),
             for (final style in RopeStyle.all)
               item(style.name, () => _setStyle(style),
                   selected: style.id == current),

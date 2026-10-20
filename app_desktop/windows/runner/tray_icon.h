@@ -14,6 +14,7 @@ class TrayIcon {
  public:
   enum class Command {
     kNone,
+    kOpenCustomize,
     kToggleVisible,
     kToggleFollow,
     kToggleLaunchAtLogin,
