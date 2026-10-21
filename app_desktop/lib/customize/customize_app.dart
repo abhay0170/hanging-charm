@@ -13,6 +13,7 @@ import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
+import 'glass.dart';
 import 'animated_charm_editor.dart';
 import 'charm_designer.dart';
 import 'name_charm_editor.dart';
@@ -23,7 +24,6 @@ import 'welcome_flow.dart';
 const appName = 'Charm';
 const appVersion = '0.1.0';
 
-const _gold = Color(0xFFC8962E);
 
 /// The Customize window: Library, Ropes & Layout, Settings and About.
 /// Every change applies to the charm straight away; there is no Save.
@@ -43,20 +43,15 @@ class CustomizeApp extends StatelessWidget {
   /// Show the first-launch welcome instead of the tabs.
   final bool welcome;
 
-  ThemeData _theme(Brightness brightness) => ThemeData(
-        colorSchemeSeed: _gold,
-        brightness: brightness,
-        fontFamily: 'Segoe UI',
-        visualDensity: VisualDensity.standard,
-      );
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '$appName – Customize',
       debugShowCheckedModeBanner: false,
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
+      theme: Glass.theme(),
+      darkTheme: Glass.theme(),
+      themeMode: ThemeMode.dark,
+      builder: (context, child) => GlassBackground(child: child!),
       home: welcome
           ? WelcomeFlow(channel: channel, catalog: catalog)
           : _CustomizeHome(
@@ -235,22 +230,11 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
         child: Scaffold(
           body: Row(
             children: [
-              NavigationRail(
-                selectedIndex: _tab,
-                onDestinationSelected: (i) => setState(() => _tab = i),
-                labelType: NavigationRailLabelType.all,
-                minWidth: 96,
-                groupAlignment: -0.9,
-                destinations: [
-                  for (final (icon, selected, label) in _tabs)
-                    NavigationRailDestination(
-                      icon: Icon(icon),
-                      selectedIcon: Icon(selected),
-                      label: Text(label),
-                    ),
-                ],
+              _GlassSidebar(
+                tabs: _tabs,
+                selected: _tab,
+                onSelect: (i) => setState(() => _tab = i),
               ),
-              const VerticalDivider(width: 1),
               Expanded(
                 child: ValueListenableBuilder<AppSettings?>(
                   valueListenable: channel.settings,
@@ -297,6 +281,114 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
   }
 }
 
+/// The tabs, on a pane of glass down the left.
+class _GlassSidebar extends StatelessWidget {
+  const _GlassSidebar({
+    required this.tabs,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<(IconData, IconData, String)> tabs;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+      child: SizedBox(
+        width: 176,
+        height: double.infinity,
+        child: GlassCard(
+          radius: 26,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+          child: Column(
+            children: [
+              for (var i = 0; i < tabs.length; i++) ...[
+                _SideTab(
+                  icon: i == selected ? tabs[i].$2 : tabs[i].$1,
+                  label: tabs[i].$3,
+                  selected: i == selected,
+                  onTap: () => onSelect(i),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SideTab extends StatelessWidget {
+  const _SideTab({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: selected
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Glass.neon.withValues(alpha: 0.14),
+                      Glass.neon.withValues(alpha: 0.05),
+                    ],
+                  )
+                : null,
+            border: Border.all(
+                color: selected ? Glass.neonLine : Colors.transparent),
+            boxShadow: [
+              if (selected)
+                BoxShadow(
+                    color: Glass.neon.withValues(alpha: 0.18), blurRadius: 20),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(icon,
+                  size: 26, color: selected ? Glass.neon : Glass.muted),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: selected ? Glass.text : Glass.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A scrolling page with a title, a one-line explanation and sections.
 class _Page extends StatelessWidget {
   const _Page({
@@ -313,14 +405,14 @@ class _Page extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
+      padding: const EdgeInsets.fromLTRB(26, 22, 30, 32),
       children: [
         Text(title, style: text.headlineSmall),
         const SizedBox(height: 4),
         Text(subtitle,
             style: text.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 24),
+                color: Glass.muted, fontSize: 16)),
+        const SizedBox(height: 14),
         ...children,
       ],
     );
@@ -333,10 +425,7 @@ class _SectionTitle extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 12),
-        child: Text(text, style: Theme.of(context).textTheme.titleMedium),
-      );
+  Widget build(BuildContext context) => GlassLabel(text);
 }
 
 /// A tappable card with a picture on top and a caption, outlined in the
@@ -358,24 +447,15 @@ class _ChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
     return SizedBox(
       width: 172,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        elevation: 0,
-        color: selected
-            ? scheme.primaryContainer.withValues(alpha: 0.5)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-            width: selected ? 2 : 1,
-          ),
-        ),
+      child: GlassCard(
+        radius: 20,
+        glowing: selected,
         child: InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -385,18 +465,15 @@ class _ChoiceCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(title,
-                          style: Theme.of(context).textTheme.titleSmall),
-                    ),
+                    Expanded(child: Text(title, style: text.titleSmall)),
                     if (selected)
-                      Icon(Icons.check_circle, size: 18, color: scheme.primary),
+                      const Icon(Icons.check_circle,
+                          size: 18, color: Glass.neon),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(caption,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant)),
+                    style: text.bodySmall?.copyWith(color: Glass.muted)),
               ],
             ),
           ),
@@ -658,34 +735,27 @@ class _NewCharmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
     return SizedBox(
       width: 172,
       height: 222,
-      child: Material(
-        color: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: scheme.primary.withValues(alpha: 0.6)),
-        ),
-        clipBehavior: Clip.antiAlias,
+      child: GlassCard(
+        radius: 20,
         child: InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 36, color: scheme.primary),
+              Icon(icon, size: 36, color: Glass.neon),
               const SizedBox(height: 10),
-              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              Text(title, style: text.titleSmall),
               const SizedBox(height: 4),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(caption,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant)),
+                    style: text.bodySmall?.copyWith(color: Glass.muted)),
               ),
             ],
           ),
@@ -880,149 +950,178 @@ class _SettingsPageState extends State<_SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final s = widget.settings;
+    final volume = _draggedVolume ?? s.soundVolume;
+    final percent = (volume * 100).round();
+    final breeze = _draggedBreeze ?? s.breeze;
+    final text = Theme.of(context).textTheme;
+
+    Widget toggle(String title, String subtitle, bool value,
+            ValueChanged<bool>? onChanged) =>
+        GlassRow(
+          title: title,
+          subtitle: subtitle,
+          trailing: Switch(value: value, onChanged: onChanged),
+        );
+
+    Widget valueText(String shown) => SizedBox(
+          width: 62,
+          child: Text(shown,
+              textAlign: TextAlign.right,
+              style: text.bodyMedium?.copyWith(
+                  color: Glass.neon,
+                  shadows: [Shadow(color: Glass.neon, blurRadius: 10)])),
+        );
+
     return _Page(
       title: 'Settings',
       subtitle: 'How the charm behaves on this computer.',
       children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Where it hangs'),
-          subtitle: const Text('From the window you are using, from the top '
-              'of the screen, or beside the left or right edge (where it '
-              'stops at the screen’s edge). Drag the pin to slide it.'),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 'window', label: Text('Window')),
-              ButtonSegment(value: 'top', label: Text('Top')),
-              ButtonSegment(value: 'left', label: Text('Left')),
-              ButtonSegment(value: 'right', label: Text('Right')),
-            ],
-            selected: {
-              widget.settings.followWindow
-                  ? 'window'
-                  : widget.settings.screenEdge.name,
-            },
-            onSelectionChanged: (v) {
-              final pick = v.first;
-              widget.channel.update(pick == 'window'
-                  ? {'followWindow': true}
-                  : {'followWindow': false, 'screenEdge': pick});
-            },
+        const _SectionTitle('Placement'),
+        GlassGroup(rows: [
+          GlassRow(
+            wide: true,
+            title: 'Where it hangs',
+            subtitle: 'From the window you are using, from the top of the '
+                'screen, or beside the left or right edge (where it stops at '
+                'the screen’s edge). Drag the pin to slide it.',
+            trailing: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'window', label: Text('Window')),
+                ButtonSegment(value: 'top', label: Text('Top')),
+                ButtonSegment(value: 'left', label: Text('Left')),
+                ButtonSegment(value: 'right', label: Text('Right')),
+              ],
+              selected: {s.followWindow ? 'window' : s.screenEdge.name},
+              onSelectionChanged: (v) {
+                final pick = v.first;
+                widget.channel.update(pick == 'window'
+                    ? {'followWindow': true}
+                    : {'followWindow': false, 'screenEdge': pick});
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Show charm'),
-          subtitle: const Text('Hide it for a while without quitting.'),
-          value: widget.settings.charmVisible,
-          onChanged: (v) => widget.channel.update({'charmVisible': v}),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Animate charms'),
-          subtitle: const Text('GIF charms play while they hang. Turn off to '
-              'save power: they show one still frame.'),
-          value: widget.settings.animateCharms,
-          onChanged: (v) => widget.channel.update({'animateCharms': v}),
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-              'Chime volume: ${((_draggedVolume ?? widget.settings.soundVolume) * 100).round() == 0 ? 'off' : '${((_draggedVolume ?? widget.settings.soundVolume) * 100).round()}%'}'),
-          subtitle: const Text('A soft bell when the charm is knocked, thrown '
-              'or a locket opens. Off until you choose a volume. The sound '
-              'is made on this computer; nothing is downloaded.'),
-        ),
-        Slider(
-          value: _draggedVolume ?? widget.settings.soundVolume,
-          divisions: 10,
-          label: 'Volume',
-          onChanged: (v) => setState(() => _draggedVolume = v),
-          onChangeEnd: (v) {
-            setState(() => _draggedVolume = null);
-            widget.channel.update({'soundVolume': v});
-          },
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-              'Breeze: ${_breezeNames[((_draggedBreeze ?? widget.settings.breeze) * 3).round()]}'),
-          subtitle: const Text('A gentle breeze sways the charm now and then. '
-              'It is made on this computer: no weather, no internet, no '
-              'location. Off until you choose. It keeps the charm moving, so '
-              'it uses a little power (and pauses on battery).'),
-        ),
-        Slider(
-          value: _draggedBreeze ?? widget.settings.breeze,
-          divisions: 3,
-          onChanged: (v) => setState(() => _draggedBreeze = v),
-          onChangeEnd: (v) {
-            setState(() => _draggedBreeze = null);
-            widget.channel.update({'breeze': v});
-          },
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Save power on battery'),
-          subtitle: const Text('On battery or in Battery Saver, the charm draws '
-              'fewer frames and animated charms hold still. If Windows’ '
-              '“Show animations” is off, animations always hold still.'),
-          value: widget.settings.savePower,
-          onChanged: (v) => widget.channel.update({'savePower': v}),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Sway when I shake the mouse'),
-          subtitle: const Text('Shake the mouse and the charm gives a small '
-              'sway. Off unless you turn it on, because it watches where '
-              'the cursor goes (nothing is kept or sent).'),
-          value: widget.settings.reactToWiggle,
-          onChanged: (v) => widget.channel.update({'reactToWiggle': v}),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Launch at login'),
-          subtitle: const Text('Start the charm when you sign in to Windows.'),
-          value: _launchAtLogin ?? false,
-          onChanged: _launchAtLogin == null ? null : _setLaunchAtLogin,
-        ),
-        const SizedBox(height: 16),
+          toggle('Show charm', 'Hide it for a while without quitting.',
+              s.charmVisible, (v) => widget.channel.update({'charmVisible': v})),
+        ]),
+        const _SectionTitle('Motion & sound'),
+        GlassGroup(rows: [
+          toggle(
+              'Animate charms',
+              'GIF charms play while they hang. Turn off to save power: they '
+                  'show one still frame.',
+              s.animateCharms,
+              (v) => widget.channel.update({'animateCharms': v})),
+          GlassRow(
+            wide: true,
+            title: 'Chime volume',
+            subtitle: 'A soft bell when the charm is knocked, thrown or a '
+                'locket opens. Off until you choose a volume. The sound is '
+                'made on this computer; nothing is downloaded.',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                valueText(percent == 0 ? 'Off' : '$percent%'),
+                SizedBox(
+                  width: 260,
+                  child: Slider(
+                    value: volume,
+                    divisions: 10,
+                    label: 'Volume',
+                    onChanged: (v) => setState(() => _draggedVolume = v),
+                    onChangeEnd: (v) {
+                      setState(() => _draggedVolume = null);
+                      widget.channel.update({'soundVolume': v});
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GlassRow(
+            wide: true,
+            title: 'Breeze',
+            subtitle: 'A gentle breeze sways the charm now and then. It is '
+                'made on this computer: no weather, no internet, no '
+                'location. Off until you choose. It keeps the charm moving, '
+                'so it uses a little power (and pauses on battery).',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                valueText(_breezeNames[(breeze * 3).round()]),
+                SizedBox(
+                  width: 260,
+                  child: Slider(
+                    value: breeze,
+                    divisions: 3,
+                    onChanged: (v) => setState(() => _draggedBreeze = v),
+                    onChangeEnd: (v) {
+                      setState(() => _draggedBreeze = null);
+                      widget.channel.update({'breeze': v});
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          toggle(
+              'Sway when I shake the mouse',
+              'Shake the mouse and the charm gives a small sway. Off unless '
+                  'you turn it on, because it watches where the cursor goes '
+                  '(nothing is kept or sent).',
+              s.reactToWiggle,
+              (v) => widget.channel.update({'reactToWiggle': v})),
+        ]),
+        const _SectionTitle('System'),
+        GlassGroup(rows: [
+          toggle(
+              'Save power on battery',
+              'On battery or in Battery Saver, the charm draws fewer frames '
+                  'and animated charms hold still. If Windows’ “Show '
+                  'animations” is off, animations always hold still.',
+              s.savePower,
+              (v) => widget.channel.update({'savePower': v})),
+          toggle(
+              'Launch at login',
+              'Start the charm when you sign in to Windows.',
+              _launchAtLogin ?? false,
+              _launchAtLogin == null ? null : _setLaunchAtLogin),
+        ]),
         const _SectionTitle('Privacy'),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.lock_outline, color: scheme.primary),
-          title: const Text('Works completely offline'),
-          subtitle: const Text('The charm makes no network requests. Nothing '
-              'about you, your screen or your files leaves this computer.'),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Share anonymous usage stats'),
-          subtitle: const Text('Off unless you turn it on. This version '
-              'doesn’t send anything yet; your choice applies once '
-              'stats are added. Turning it off deletes the random ID.'),
-          value: widget.settings.shareStats,
-          onChanged: (v) => widget.channel.update({'shareStats': v}),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            icon: const Icon(Icons.visibility_outlined, size: 18),
-            label: const Text('See what would be shared'),
-            onPressed: () => _showWhatWouldBeShared(context),
+        GlassGroup(rows: [
+          const GlassRow(
+            leading: Icon(Icons.lock_outline, color: Glass.neon),
+            title: 'Works completely offline',
+            subtitle: 'The charm makes no network requests. Nothing about '
+                'you, your screen or your files leaves this computer.',
           ),
-        ),
-        const SizedBox(height: 16),
-        const _SectionTitle('Saved settings'),
+          GlassRow(
+            wide: true,
+            title: 'Share anonymous usage stats',
+            subtitle: 'Off unless you turn it on. This version doesn’t send '
+                'anything yet; your choice applies once stats are added. '
+                'Turning it off deletes the random ID.',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _showWhatWouldBeShared(context),
+                  child: const Text('See what would be shared'),
+                ),
+                const SizedBox(width: 14),
+                Switch(
+                  value: s.shareStats,
+                  onChanged: (v) => widget.channel.update({'shareStats': v}),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 18),
         SelectableText(
-          '${SettingsStore.defaultDirectory().path}\\settings.json',
-          style: Theme.of(context).textTheme.bodySmall,
+          'Saved in ${SettingsStore.defaultDirectory().path}\\settings.json',
+          style: text.bodySmall?.copyWith(color: Glass.faint),
         ),
       ],
     );
@@ -1142,45 +1241,63 @@ class _AboutPage extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         const _SectionTitle('Your privacy'),
-        ..._privacyPoints.map((point) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 3, right: 10),
-                    child: Icon(Icons.check_circle_outline, size: 18),
+        GlassCard(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+          child: Column(
+            children: [
+              for (final point in _privacyPoints)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 3, right: 12),
+                        child: Icon(Icons.check_circle_outline,
+                            size: 18, color: Glass.neon),
+                      ),
+                      Expanded(child: Text(point, style: text.bodyMedium)),
+                    ],
                   ),
-                  Expanded(child: Text(point, style: text.bodyMedium)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _SectionTitle('Your data'),
+        GlassCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Everything Charm saves is in one folder on this computer: '
+                'your settings, the charms you made, and a small log of '
+                'errors.',
+                style: text.bodyMedium,
+              ),
+              const SizedBox(height: 4),
+              SelectableText(SettingsStore.defaultDirectory().path,
+                  style: text.bodySmall?.copyWith(color: Glass.muted)),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.folder_open, size: 18),
+                    label: const Text('Open the folder'),
+                    onPressed: () => _openFolder(context),
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Delete all my data…'),
+                    onPressed: () => _confirmDelete(context),
+                  ),
                 ],
               ),
-            )),
-        const SizedBox(height: 24),
-        const _SectionTitle('Your data'),
-        Text(
-          'Everything Charm saves is in one folder on this computer: your '
-          'settings, the charms you made, and a small log of errors.',
-          style: text.bodyMedium,
-        ),
-        const SizedBox(height: 4),
-        SelectableText(SettingsStore.defaultDirectory().path,
-            style: text.bodySmall),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.folder_open, size: 18),
-              label: const Text('Open the folder'),
-              onPressed: () => _openFolder(context),
-            ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text('Delete all my data…'),
-              onPressed: () => _confirmDelete(context),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 32),
         const _SectionTitle('Keyboard'),

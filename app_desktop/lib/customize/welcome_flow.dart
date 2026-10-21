@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../charms/charm.dart';
 import '../settings/app_settings.dart';
 import 'customize_channel.dart';
+import 'glass.dart';
 import 'rope_preview.dart';
 
 /// The first-launch welcome, in three steps: pick a charm, choose privacy,
@@ -178,7 +179,6 @@ class _PickCharm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final chosen = catalog.charmFor(settings.charmId).id;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,23 +198,11 @@ class _PickCharm extends StatelessWidget {
                 for (final charm in catalog.all)
                   SizedBox(
                     width: 110,
-                    child: Card(
-                      elevation: 0,
-                      clipBehavior: Clip.antiAlias,
-                      color: charm.id == chosen
-                          ? scheme.primaryContainer.withValues(alpha: 0.5)
-                          : scheme.surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: charm.id == chosen
-                              ? scheme.primary
-                              : scheme.outlineVariant,
-                          width: charm.id == chosen ? 2 : 1,
-                        ),
-                      ),
+                    child: GlassCard(
+                      radius: 16,
+                      glowing: charm.id == chosen,
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () => channel.update({'charm': charm.id}),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
@@ -314,20 +302,11 @@ class _Option extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      color: selected
-          ? scheme.primaryContainer.withValues(alpha: 0.5)
-          : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: selected ? scheme.primary : scheme.outlineVariant,
-          width: selected ? 2 : 1,
-        ),
-      ),
+    return GlassCard(
+      radius: 18,
+      glowing: selected,
       child: InkWell(
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),

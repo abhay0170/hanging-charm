@@ -175,6 +175,19 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   deletes the charms you made and the log, puts every setting back to its
   default, and stops Charm starting with Windows. Photos you used for charms
   are never in those places, so they are never touched.
+- **The Customize window's look: glass and one neon colour.** Frosted-glass
+  cards and a glass sidebar over a dark background with soft teal and violet
+  light behind them; one mint-neon accent (headings, the chosen tab, switches
+  that are on, slider handles, the chosen card); buttons with a glassy face
+  (a bright top edge, a hairline border) that brighten under the cursor, and
+  a neon-lit one for the main action. Settings is grouped into Placement,
+  Motion & sound, System and Privacy, each a card of rows with the control
+  on the right (under the words in a narrow window). It is dark only: glass
+  needs a dark, glowing background to be seen, so the window no longer
+  follows Windows' light mode. The design was approved as a picture first
+  (`design/settings_glass_mockup.png`). The colours and shapes live in one
+  file, `lib/customize/glass.dart`. The native title bar is Windows' own and
+  keeps its colour.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -341,6 +354,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Icon, About and delete on screen (on a throwaway profile, never yours): the new bead icon shows in the Customize title bar; About shows the privacy points, the data folder and both buttons; "Delete all my data" asks, then removes the charms folder and the log, resets the settings (charm back to the bead, chime off, extras gone) and says "Everything was deleted" | ✅ |
 | Identity tests (5): About's version equals pubspec's, the exe says Charm, the icon holds 16/24/32/48/64/128/256, deleting removes the charms folder and log and nothing else, and copes with nothing to delete | ✅ |
 | The icon in the taskbar, tray and Explorer (I saw it in the window's title bar) | Not looked at in those places |
+| Glass theme on screen (Library, Ropes & Layout, Settings, About, the first-launch Welcome): glass sidebar and cards, neon headings and chosen states, glassy buttons. Two faults found and fixed on the way: welcome tiles came out solid grey and the main button's label was invisible | ✅ |
+| Theme tests (4): dark with the neon accent and a clear scaffold, every themed control builds (switch, slider, segmented, three buttons, a disabled one, text field, chip, glass card), a wide control sits beside its words or under them in a narrow window, a small one never leaves them | ✅ |
+| Dialogs, snackbars and the editors (photo, name, locket, designer) in the new theme | Themed, not looked at one by one except the delete dialog's buttons |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

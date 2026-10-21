@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Charm – Customize (glass and neon mockup)</title>
+<style>
+  :root {
+    --bg: #07080d;
+    --neon: #5ef2e0;          /* the one accent: a cool neon mint */
+    --neon-soft: rgba(94, 242, 224, 0.16);
+    --neon-line: rgba(94, 242, 224, 0.55);
+    --glass: rgba(255, 255, 255, 0.055);
+    --glass-strong: rgba(255, 255, 255, 0.09);
+    --glass-line: rgba(255, 255, 255, 0.13);
+    --text: #eef2f7;
+    --muted: rgba(238, 242, 247, 0.58);
+    --faint: rgba(238, 242, 247, 0.34);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1505px; height: 1050px; overflow: hidden; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    position: relative;
+  }
+  /* The soft light behind the glass, so there is something to blur. */
+  .glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
+  .g1 { width: 620px; height: 620px; left: -140px; top: -120px; background: #1c6b7a; }
+  .g2 { width: 560px; height: 560px; right: -120px; top: 180px; background: #4a2d8f; opacity: .5; }
+  .g3 { width: 520px; height: 520px; left: 420px; bottom: -260px; background: #0f5a58; opacity: .45; }
+
+  .window {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: 200px 1fr;
+  }
+
+  /* ---- title bar ---- */
+  .titlebar {
+    position: absolute; left: 0; right: 0; top: 0; height: 52px;
+    display: flex; align-items: center; padding: 0 22px; gap: 12px;
+    font-size: 18px; color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.025);
+    backdrop-filter: blur(18px);
+  }
+  .titlebar .dot { width: 20px; height: 20px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff3c4, #e0a93b 55%, #7a4e0e); }
+  .titlebar .ctl { margin-left: auto; display: flex; gap: 34px; font-size: 20px; }
+
+  /* ---- sidebar ---- */
+  .side {
+    margin: 64px 0 12px 12px; padding: 22px 10px;
+    border-radius: 26px;
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    backdrop-filter: blur(24px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 20px 50px rgba(0,0,0,.35);
+    display: flex; flex-direction: column; gap: 14px; align-items: center;
+  }
+  .tab { width: 160px; padding: 14px 0 12px; border-radius: 18px; text-align: center;
+    color: var(--muted); font-size: 15px; letter-spacing: .2px; }
+  .tab .ico { font-size: 26px; display: block; margin-bottom: 4px; opacity: .9; }
+  .tab.on { color: var(--text);
+    background: linear-gradient(180deg, rgba(94,242,224,.14), rgba(94,242,224,.05));
+    border: 1px solid var(--neon-line);
+    box-shadow: 0 0 22px rgba(94,242,224,.18), inset 0 1px 0 rgba(255,255,255,.2); }
+  .tab.on .ico { color: var(--neon); text-shadow: 0 0 14px rgba(94,242,224,.9); }
+
+  /* ---- content ---- */
+  .content { margin: 64px 28px 12px 24px; overflow: hidden; position: relative; }
+  h1 { font-weight: 300; font-size: 40px; letter-spacing: -.5px; margin: 4px 0 4px; }
+  .sub { color: var(--muted); font-size: 16px; margin-bottom: 14px; }
+
+  .label { font-size: 12.5px; letter-spacing: 2.2px; text-transform: uppercase;
+    color: var(--neon); opacity: .9; margin: 14px 4px 9px; display: flex; align-items: center; gap: 10px; }
+  .label::after { content: ""; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(94,242,224,.35), transparent); }
+
+  .card {
+    border-radius: 22px; padding: 6px 8px;
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    backdrop-filter: blur(22px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 16px 40px rgba(0,0,0,.28);
+  }
+  .row { display: flex; align-items: center; gap: 22px; padding: 11px 16px; }
+  .row + .row { border-top: 1px solid rgba(255,255,255,.07); }
+  .row .t { flex: 1; }
+  .row .t b { display: block; font-weight: 500; font-size: 18px; }
+  .row .t span { display: block; margin-top: 3px; font-size: 14px; color: var(--muted); line-height: 1.4; max-width: 760px; }
+
+  /* toggle: glass pill, neon when on */
+  .sw { width: 54px; height: 30px; border-radius: 30px; position: relative; flex: none;
+    background: rgba(255,255,255,.08); border: 1px solid var(--glass-line);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.35); }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(180deg, #ffffff, #c9d2dc); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .sw.on { background: linear-gradient(180deg, rgba(94,242,224,.55), rgba(94,242,224,.28));
+    border-color: var(--neon-line); box-shadow: 0 0 18px rgba(94,242,224,.45), inset 0 1px 0 rgba(255,255,255,.35); }
+  .sw.on::after { left: 27px; }
+
+  /* slider: hairline track, neon fill and a glowing bead */
+  .slider { width: 300px; height: 30px; position: relative; flex: none; }
+  .slider .track { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.12); }
+  .slider .fill { position: absolute; left: 0; top: 13px; height: 4px; border-radius: 4px;
+    background: linear-gradient(90deg, rgba(94,242,224,.4), var(--neon)); box-shadow: 0 0 12px rgba(94,242,224,.7); }
+  .slider .knob { position: absolute; top: 5px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #bffaf3 60%, #5ef2e0);
+    box-shadow: 0 0 16px rgba(94,242,224,.9), 0 2px 6px rgba(0,0,0,.5); }
+  .slider .tick { position: absolute; top: 11px; width: 2px; height: 8px; background: rgba(255,255,255,.2); }
+
+  /* segmented control and buttons: glass with a bright top edge */
+  .seg { display: inline-flex; padding: 4px; border-radius: 16px; gap: 4px; flex: none;
+    background: rgba(255,255,255,.05); border: 1px solid var(--glass-line); backdrop-filter: blur(16px); }
+  .seg div { padding: 10px 24px; border-radius: 12px; font-size: 16px; color: var(--muted); }
+  .seg .on { color: #04110f;
+    background: linear-gradient(180deg, #a4fff2, #5ef2e0);
+    box-shadow: 0 0 20px rgba(94,242,224,.55), inset 0 1px 0 rgba(255,255,255,.7); font-weight: 600; }
+
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; border-radius: 16px; font-size: 16px; color: var(--text);
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05));
+    border: 1px solid rgba(255,255,255,.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 20px rgba(0,0,0,.3);
+    backdrop-filter: blur(14px); }
+  .btn.neon { border-color: var(--neon-line); color: var(--neon);
+    background: linear-gradient(180deg, rgba(94,242,224,.2), rgba(94,242,224,.06));
+    box-shadow: 0 0 22px rgba(94,242,224,.25), inset 0 1px 0 rgba(255,255,255,.4); }
+  .value { font-size: 15px; color: var(--neon); width: 66px; text-align: right; flex: none; text-shadow: 0 0 10px rgba(94,242,224,.6); }
+
+  .scroll { position: absolute; right: 2px; top: 40px; width: 6px; height: 260px; border-radius: 6px; background: rgba(255,255,255,.18); }
+  .caption { position: absolute; left: 18px; bottom: 14px; font-size: 13px; color: var(--faint); }
+</style>
+</head>
+<body>
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+
+  <div class="titlebar">
+    <div class="dot"></div><div>Charm – Customize</div>
+    <div class="ctl"><span>–</span><span>▢</span><span>✕</span></div>
+  </div>
+
+  <div class="window">
+    <div class="side">
+      <div class="tab"><span class="ico">◇</span>Library</div>
+      <div class="tab"><span class="ico">•••</span>Ropes &amp; Layout</div>
+      <div class="tab on"><span class="ico">⚙</span>Settings</div>
+      <div class="tab"><span class="ico">ⓘ</span>About</div>
+    </div>
+
+    <div class="content">
+      <h1>Settings</h1>
+      <div class="sub">How the charm behaves on this computer.</div>
+
+      <div class="label">Placement</div>
+      <div class="card">
+        <div class="row">
+          <div class="t"><b>Where it hangs</b><span>From the window you are using, from the top of the screen, or beside the left or right edge.</span></div>
+          <div class="seg"><div>Window</div><div class="on">Top</div><div>Left</div><div>Right</div></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Show charm</b><span>Hide it for a while without quitting.</span></div>
+          <div class="sw on"></div>
+        </div>
+      </div>
+
+      <div class="label">Motion &amp; sound</div>
+      <div class="card">
+        <div class="row">
+          <div class="t"><b>Animate charms</b><span>GIF charms play while they hang. Turn off to save power.</span></div>
+          <div class="sw on"></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Chime volume</b><span>A soft bell when the charm is knocked, thrown or a locket opens.</span></div>
+          <div class="value">50%</div>
+          <div class="slider"><div class="track"></div><div class="fill" style="width:50%"></div><div class="knob" style="left:50%"></div></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Breeze</b><span>A gentle breeze from this computer's clock. No weather, no internet.</span></div>
+          <div class="value">Light</div>
+          <div class="slider"><div class="track"></div><div class="fill" style="width:33%"></div><div class="knob" style="left:33%"></div>
+            <div class="tick" style="left:0"></div><div class="tick" style="left:33%"></div><div class="tick" style="left:66%"></div><div class="tick" style="left:100%"></div></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Sway when I shake the mouse</b><span>Off unless you turn it on, because it watches where the cursor goes.</span></div>
+          <div class="sw"></div>
+        </div>
+      </div>
+
+      <div class="label">System</div>
+      <div class="card">
+        <div class="row">
+          <div class="t"><b>Save power on battery</b><span>Fewer frames, and animated charms hold still.</span></div>
+          <div class="sw on"></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Launch at login</b><span>Start the charm when you sign in to Windows.</span></div>
+          <div class="sw"></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>Share anonymous usage stats</b><span>Off unless you turn it on. This version doesn't send anything yet.</span></div>
+          <div class="btn">See what would be shared</div>
+          <div class="sw"></div>
+        </div>
+      </div>
+
+      <div class="scroll"></div>
+    </div>
+  </div>
+</body>
+</html>
