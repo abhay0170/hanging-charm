@@ -143,6 +143,23 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   edge on it, keeping a quarter of their speed the other way, so a swing
   never goes out of sight (tested, with extras too). The taskbar is not an
   anchor: a charm hanging from it would cover the taskbar's own icons.
+- **Festivals** (Library → "Festivals", and a shelf at the top near each
+  one): eight charms drawn in code for the festivals people look forward
+  to: a Diwali star lantern, a Pongal pot, an Onam pookalam, Holi colours,
+  an Eid lantern, a Christmas bauble, a New Year sparkler and a Lunar New
+  Year lantern. The calendar ships with the app (nothing is fetched): New
+  Year, Pongal, Lunar New Year, Holi, Eid al-Fitr, Eid al-Adha, Onam,
+  Diwali and Christmas, for 2027 to 2030 (and the rest of 2026). From 3
+  weeks before a festival until 3 days after, the Library opens with a
+  "Diwali · in 18 days" shelf holding its charm, and on the day and the day
+  either side it says "Happy Diwali!". Under it, "Charm of the day" gives a
+  different everyday charm each day (the same one all day), and the
+  festival's own charm on its days. **About the dates:** the ones that follow
+  the moon (Diwali, Holi, Onam, both Eids) can fall a day either way
+  depending on where you are, and I could not confirm every one to the day.
+  They come from published calendars, and the 3-week window means a day's
+  difference changes only the countdown. After 2030 the shelf stays empty
+  until the app is updated with new dates.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -303,6 +320,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Layout tests (4): sides alternate and each hangs lower; 200 random sets of sizes never overlap; small charms hang closer than big ones | ✅ |
 | Rope stretch fix on screen: the heart dragged 400 px away stops at the end of its cord and the chain stays at its length | ✅ |
 | Stretch test (1 new, 89 physics in all): each of the five charms dragged 800 px away, rope under 3% longer, carried extra never beyond its cord | ✅ |
+| Festivals on screen (Customize, 21 October 2026): "Diwali · in 18 days" shelf with the lantern, "Charm of the day"; all eight festival charms draw and hang in the Library | ✅ |
+| Festival tests (19): every festival has charms that exist in the catalog, every festival has dates for 2027 to 2030 in order, each in its own season, the Eids drift 8 to 13 days a year, the window opens 21 days before and closes 3 after, "in 18 days / tomorrow / today / yesterday", greeting for the day and a day either side, across the new year, real dates only, days counted by date, bad entries skipped, calendar end, charm of the day (same all day, varies, festival charm on its days, no festival charm on an ordinary day) · the all-charms draw test covers the eight new SVGs | ✅ |
+| Hanging a festival charm on screen from the Library (I checked how they look in the Library, not hanging) | Not checked |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

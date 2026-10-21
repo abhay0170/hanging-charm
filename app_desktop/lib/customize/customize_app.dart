@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../charms/charm.dart';
 import '../charms/user_charms.dart';
+import '../festivals/festival_calendar.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
@@ -31,11 +32,13 @@ class CustomizeApp extends StatelessWidget {
     super.key,
     required this.channel,
     required this.catalog,
+    this.festivals = FestivalCalendar.empty,
     this.welcome = false,
   });
 
   final CustomizeChannel channel;
   final CharmCatalog catalog;
+  final FestivalCalendar festivals;
 
   /// Show the first-launch welcome instead of the tabs.
   final bool welcome;
@@ -56,16 +59,19 @@ class CustomizeApp extends StatelessWidget {
       darkTheme: _theme(Brightness.dark),
       home: welcome
           ? WelcomeFlow(channel: channel, catalog: catalog)
-          : _CustomizeHome(channel: channel, catalog: catalog),
+          : _CustomizeHome(
+              channel: channel, catalog: catalog, festivals: festivals),
     );
   }
 }
 
 class _CustomizeHome extends StatefulWidget {
-  const _CustomizeHome({required this.channel, required this.catalog});
+  const _CustomizeHome(
+      {required this.channel, required this.catalog, required this.festivals});
 
   final CustomizeChannel channel;
   final CharmCatalog catalog;
+  final FestivalCalendar festivals;
 
   @override
   State<_CustomizeHome> createState() => _CustomizeHomeState();
@@ -264,6 +270,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                       0 => _LibraryPage(
                           settings: settings,
                           catalog: _catalog,
+                          festivals: widget.festivals,
                           channel: channel,
                           onNewFromPhoto: _newFromPhoto,
                           onNewAnimated: _newAnimated,
@@ -404,6 +411,7 @@ class _LibraryPage extends StatelessWidget {
   const _LibraryPage({
     required this.settings,
     required this.catalog,
+    required this.festivals,
     required this.channel,
     required this.onNewFromPhoto,
     required this.onNewAnimated,
@@ -415,6 +423,7 @@ class _LibraryPage extends StatelessWidget {
 
   final AppSettings settings;
   final CharmCatalog catalog;
+  final FestivalCalendar festivals;
   final CustomizeChannel channel;
   final VoidCallback onNewFromPhoto;
   final VoidCallback onNewAnimated;
@@ -485,6 +494,43 @@ class _LibraryPage extends StatelessWidget {
           ],
         );
 
+    // The festivals near today, and a charm for the day.
+    List<Widget> thisSeason() {
+      final today = DateTime.now();
+      final near = festivals.near(today);
+      final pool = [
+        for (final c in catalog.collections)
+          if (c.id != CharmCatalog.userCollectionId) ...c.charms,
+      ].where((c) => !c.isBuiltIn).toList();
+      // An ordinary day picks from the everyday charms; the festival charms
+      // come up on their own days.
+      final everyday = [
+        for (final c in catalog.collections)
+          if (c.id != CharmCatalog.userCollectionId && c.id != 'festival')
+            ...c.charms,
+      ].where((c) => !c.isBuiltIn).toList();
+      final pick = festivals.charmOfTheDay(today, pool, everyday: everyday);
+      return [
+        for (final season in near)
+          section(
+            '${season.festival.name} · ${season.when}',
+            season.greetingNow
+                ? '${season.festival.greeting}!'
+                : 'Charms for the season. Press one to hang it.',
+            [
+              for (final id in season.festival.charmIds)
+                if (catalog.charmFor(id).id == id) card(catalog.charmFor(id)),
+            ],
+          ),
+        if (pick != null && !near.any((s) => s.festival.charmIds.contains(pick.id)))
+          section(
+            'Charm of the day',
+            'A different one every day. Today: ${pick.name}.',
+            [card(pick)],
+          ),
+      ];
+    }
+
     Widget onRope() {
       final main = catalog.charmFor(settings.charmId);
       Widget art(Charm c) => SizedBox(width: 28, height: 28, child: CharmArt(charm: c));
@@ -532,6 +578,7 @@ class _LibraryPage extends StatelessWidget {
       subtitle: 'The charm that hangs on your screen. '
           '${catalog.all.length} to choose from.',
       children: [
+        ...thisSeason(),
         if (settings.extraCharmIds.isNotEmpty) onRope(),
         section(
           'My charms',

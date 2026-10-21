@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'charms/charm.dart';
 import 'customize/customize_app.dart';
 import 'customize/customize_channel.dart';
+import 'festivals/festival_calendar.dart';
 import 'overlay/charm_overlay.dart';
 import 'settings/settings_store.dart';
 
@@ -24,9 +25,11 @@ Future<void> customizeMain(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   final channel = CustomizeChannel();
   final catalog = await CharmCatalog.load(rootBundle);
+  final festivals = await FestivalCalendar.load(rootBundle);
   runApp(CustomizeApp(
     channel: channel,
     catalog: catalog,
+    festivals: festivals,
     welcome: args.contains('--welcome'),
   ));
   channel.hello();
