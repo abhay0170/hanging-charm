@@ -14,14 +14,63 @@ import 'user_charms.dart';
 /// density, with a soft shadow in its own shape. Each frame only places and
 /// turns it, so even detailed artwork costs nothing extra while swinging.
 class CharmSprite {
-  CharmSprite._(this.charm, this.devicePixelRatio, this.image, this.artSize);
+  CharmSprite._(this.charm, this.devicePixelRatio, this.frames, this.artSize,
+      [this.delays = const []]);
 
   /// Room around the artwork for its shadow.
   static const double pad = 12;
 
   final Charm charm;
   final double devicePixelRatio;
-  final ui.Image image;
+  /// The artwork: one image for a still charm, one per frame for an
+  /// animated one.
+  final List<ui.Image> frames;
+
+  /// How long each frame shows; empty for a still charm.
+  final List<Duration> delays;
+
+  ui.Image get image => frames.first;
+
+  bool get isAnimated => frames.length > 1;
+
+  /// Frames kept from an animation. Longer ones are cut here, so a huge
+  /// file can't fill the memory.
+  static const int maxFrames = 120;
+
+  /// The shortest a frame is shown. Browsers treat the 0 and 10 ms delays
+  /// that many GIFs carry as 100 ms; so do we. It also keeps the repaint
+  /// rate, and so the CPU cost, modest.
+  static const Duration minDelay = Duration(milliseconds: 60);
+
+  Duration get _loop => delays.fold(Duration.zero, (a, b) => a + b);
+
+  Duration _intoLoop(Duration time) =>
+      Duration(microseconds: time.inMicroseconds % _loop.inMicroseconds);
+
+  /// The image to show [time] after the animation began (looping).
+  ui.Image imageAt(Duration time) {
+    if (!isAnimated) return image;
+    var into = _intoLoop(time);
+    for (var i = 0; i < delays.length; i++) {
+      if (into < delays[i]) return frames[i];
+      into -= delays[i];
+    }
+    return frames.last;
+  }
+
+  /// How long until the frame shown at [time] is replaced.
+  Duration untilNextFrame(Duration time) {
+    var into = _intoLoop(time);
+    for (final delay in delays) {
+      if (into < delay) return delay - into;
+      into -= delay;
+    }
+    return delays.last;
+  }
+
+  /// Time since the app started: what an animation's frames are read
+  /// against, so every painter shows the same frame.
+  static final clock = Stopwatch()..start();
 
   /// The artwork's size on screen, in logical pixels.
   final Size artSize;
@@ -129,29 +178,53 @@ class CharmSprite {
       }
     }
 
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final png = frame.image;
+    // Decoded no larger than needed: a big GIF costs memory per frame.
+    final codec = await ui.instantiateImageCodec(bytes,
+        targetWidth: (charm.size * dpr * 2).ceil());
     try {
-      final art =
-          Size(charm.size, charm.size * png.height / png.width);
-      return _render(charm, dpr, art, (canvas) {
-        canvas.drawImageRect(
-          png,
-          Rect.fromLTWH(0, 0, png.width.toDouble(), png.height.toDouble()),
-          Offset.zero & art,
-          Paint()..filterQuality = FilterQuality.medium,
-        );
-      });
+      final wanted = math.min(codec.frameCount, maxFrames);
+      final images = <ui.Image>[];
+      final delays = <Duration>[];
+      Size? art;
+      for (var i = 0; i < wanted; i++) {
+        final frame = await codec.getNextFrame();
+        final source = frame.image;
+        try {
+          final size = art ??=
+              Size(charm.size, charm.size * source.height / source.width);
+          images.add(_renderImage(dpr, size, (canvas) {
+            canvas.drawImageRect(
+              source,
+              Rect.fromLTWH(
+                  0, 0, source.width.toDouble(), source.height.toDouble()),
+              Offset.zero & size,
+              Paint()..filterQuality = FilterQuality.medium,
+            );
+          }));
+          final shown = frame.duration;
+          delays.add(shown <= const Duration(milliseconds: 10)
+              ? const Duration(milliseconds: 100)
+              : shown < minDelay
+                  ? minDelay
+                  : shown);
+        } finally {
+          source.dispose();
+        }
+      }
+      return CharmSprite._(charm, dpr, images, art!, delays);
     } finally {
-      png.dispose();
+      codec.dispose();
     }
   }
 
   /// Draws the artwork (via [paintArt], in a box of [art] logical pixels
   /// at the origin) with its shadow beneath, into an image.
   static CharmSprite _render(Charm charm, double dpr, Size art,
-      void Function(Canvas canvas) paintArt) {
+          void Function(Canvas canvas) paintArt) =>
+      CharmSprite._(charm, dpr, [_renderImage(dpr, art, paintArt)], art);
+
+  static ui.Image _renderImage(
+      double dpr, Size art, void Function(Canvas canvas) paintArt) {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder)
       ..scale(dpr)
@@ -180,6 +253,6 @@ class CharmSprite {
       ((art.height + pad * 2) * dpr).ceil(),
     );
     picture.dispose();
-    return CharmSprite._(charm, dpr, image, art);
+    return image;
   }
 }

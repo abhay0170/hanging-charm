@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:charm_physics/charm_physics.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
+import 'animated_charm_editor.dart';
 import 'charm_designer.dart';
 import 'name_charm_editor.dart';
 import 'photo_charm_editor.dart';
@@ -110,6 +112,61 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
     widget.channel.update({'charm': charm.id});
   }
 
+  /// Pick a GIF or animated WebP, check it moves, name it, save it, hang it.
+  Future<void> _newAnimated() async {
+    void say(String message) => ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+    final path = await widget.channel.pickImage();
+    if (path == null || !mounted) return;
+    final lower = path.toLowerCase();
+    final extension = lower.endsWith('.gif')
+        ? 'gif'
+        : lower.endsWith('.webp')
+            ? 'webp'
+            : null;
+    if (extension == null) {
+      say('Pick a GIF or an animated WebP.');
+      return;
+    }
+    final file = File(path);
+    if (await file.length() > _maxAnimationBytes) {
+      say('That file is over 8 MB. Try a smaller or shorter one.');
+      return;
+    }
+    final bytes = await file.readAsBytes();
+    int frames;
+    try {
+      final codec = await ui.instantiateImageCodec(bytes, targetWidth: 32);
+      frames = codec.frameCount;
+      codec.dispose();
+    } on Object {
+      frames = 0;
+    }
+    if (!mounted) return;
+    if (frames < 2) {
+      say(frames == 0
+          ? 'That file couldn’t be opened.'
+          : 'That picture doesn’t move. Use “New from a photo” instead.');
+      return;
+    }
+    final name = path.split(RegExp(r'[\\/]')).last;
+    final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
+        builder: (_) => AnimatedCharmEditor(
+              userCharms: _userCharms,
+              bytes: bytes,
+              extension: extension,
+              frameCount: frames,
+              suggestedName: name.contains('.')
+                  ? name.substring(0, name.lastIndexOf('.'))
+                  : name,
+            )));
+    if (charm == null || !mounted) return;
+    _refreshCatalog();
+    widget.channel.update({'charm': charm.id});
+  }
+
+  static const int _maxAnimationBytes = 8 * 1024 * 1024;
+
   /// Type a name, choose its look, save it, and hang it.
   Future<void> _newFromName() async {
     final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
@@ -208,6 +265,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                           catalog: _catalog,
                           channel: channel,
                           onNewFromPhoto: _newFromPhoto,
+                          onNewAnimated: _newAnimated,
                           onNewFromName: _newFromName,
                           onDesign: _designYourOwn,
                           onDelete: _delete),
@@ -346,6 +404,7 @@ class _LibraryPage extends StatelessWidget {
     required this.catalog,
     required this.channel,
     required this.onNewFromPhoto,
+    required this.onNewAnimated,
     required this.onNewFromName,
     required this.onDesign,
     required this.onDelete,
@@ -355,6 +414,7 @@ class _LibraryPage extends StatelessWidget {
   final CharmCatalog catalog;
   final CustomizeChannel channel;
   final VoidCallback onNewFromPhoto;
+  final VoidCallback onNewAnimated;
   final VoidCallback onNewFromName;
   final VoidCallback onDesign;
   final ValueChanged<Charm> onDelete;
@@ -420,6 +480,12 @@ class _LibraryPage extends StatelessWidget {
               title: 'New from a name',
               caption: 'A name or word, in English, Hindi, Tamil or Malayalam.',
               onTap: onNewFromName,
+            ),
+            _NewCharmCard(
+              icon: Icons.animation,
+              title: 'New animated',
+              caption: 'A GIF or animated WebP that plays while it hangs.',
+              onTap: onNewAnimated,
             ),
             _NewCharmCard(
               icon: Icons.layers_outlined,
@@ -696,6 +762,14 @@ class _SettingsPageState extends State<_SettingsPage> {
           subtitle: const Text('Hide it for a while without quitting.'),
           value: widget.settings.charmVisible,
           onChanged: (v) => widget.channel.update({'charmVisible': v}),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Animate charms'),
+          subtitle: const Text('GIF charms play while they hang. Turn off to '
+              'save power: they show one still frame.'),
+          value: widget.settings.animateCharms,
+          onChanged: (v) => widget.channel.update({'animateCharms': v}),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

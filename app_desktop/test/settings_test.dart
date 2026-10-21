@@ -20,6 +20,7 @@ void main() {
     expect(store.value.ropeStyle, RopeStyle.thread);
     expect(store.value.followWindow, isTrue);
     expect(store.value.charmVisible, isTrue);
+    expect(store.value.animateCharms, isTrue);
   });
 
   test('saves and reads back every setting', () async {
@@ -29,6 +30,7 @@ void main() {
           ropeStyleId: 'gold_chain',
           followWindow: false,
           charmVisible: false,
+          animateCharms: false,
           windowAnchorFraction: 0.31,
           screenAnchorFraction: 0.9,
         ));
@@ -37,6 +39,7 @@ void main() {
     final again = await SettingsStore.open(dir);
     expect(again.value, store.value);
     expect(again.value.ropeStyle, RopeStyle.goldChain);
+    expect(again.value.animateCharms, isFalse);
   });
 
   test('a burst of changes becomes one write after a pause', () async {

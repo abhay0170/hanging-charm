@@ -180,6 +180,11 @@ void FlutterWindow::UpdateVisibility() {
   const bool show = user_visible_ && !fullscreen_hidden_;
   if (show != (IsWindowVisible(hwnd) != FALSE)) {
     ShowWindow(hwnd, show ? SW_SHOWNOACTIVATE : SW_HIDE);
+    // Animated charms stop drawing while nobody can see them.
+    if (overlay_channel_) {
+      overlay_channel_->InvokeMethod(
+          "visibility", std::make_unique<flutter::EncodableValue>(show));
+    }
   }
 }
 

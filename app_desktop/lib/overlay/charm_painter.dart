@@ -22,10 +22,14 @@ Offset _upFromCharm(RopeSim sim) {
 
 /// Draws the anchor pin, the rope in its style, and the charm.
 class CharmPainter extends CustomPainter {
-  CharmPainter(this.sim, this.sprite, {required Listenable super.repaint});
+  CharmPainter(this.sim, this.sprite,
+      {required Listenable super.repaint, this.animate = true});
 
   final RopeSim sim;
   final CharmSprite sprite;
+
+  /// Whether an animated charm shows its moving frames or just its first.
+  final bool animate;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -273,7 +277,8 @@ class CharmPainter extends CustomPainter {
     // Turn the artwork so its hang point lies straight up the rope from its
     // centre, the way a real charm settles under its own weight.
     final turn = up.direction - hang.direction;
-    final image = sprite.image;
+    final image =
+        animate ? sprite.imageAt(CharmSprite.clock.elapsed) : sprite.image;
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(turn);
@@ -291,5 +296,7 @@ class CharmPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CharmPainter oldDelegate) =>
-      oldDelegate.sim != sim || oldDelegate.sprite != sprite;
+      oldDelegate.sim != sim ||
+      oldDelegate.sprite != sprite ||
+      oldDelegate.animate != animate;
 }

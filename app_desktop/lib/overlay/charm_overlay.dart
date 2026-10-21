@@ -64,6 +64,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
     onAnchorMoved: _onAnchorMoved,
     onTrayCommand: _onTrayCommand,
     onCustomizeMessage: _onCustomizeMessage,
+    onVisibility: (visible) {
+      _onScreen = visible;
+      _animate();
+    },
   );
 
   /// Benchmark builds (`--dart-define=BENCH_SWING=true`) start the charm
@@ -114,6 +118,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (old?.followWindow != next.followWindow) {
       _channel.setFollowActive(!_benchSwing && next.followWindow);
     }
+    if (old?.animateCharms != next.animateCharms) {
+      _animate();
+      setState(() {}); // The painter shows one frame or all of them.
+    }
     if (old?.charmVisible != next.charmVisible) {
       _channel.setCharmVisible(next.charmVisible);
     }
@@ -154,6 +162,34 @@ class _CharmOverlayState extends State<CharmOverlay> {
     setState(() => _sprite = sprite);
     _sim?.charmMass = charm.mass;
     _wake();
+    _animate();
+  }
+
+  // ---- Animated charms ----
+  //
+  // A GIF charm needs a repaint whenever its frame changes, even while the
+  // rope sleeps. A timer asks for just those, and only while the charm is
+  // on screen; a still charm never starts it.
+
+  bool _onScreen = true;
+  Timer? _animationTimer;
+
+  void _animate() {
+    _animationTimer?.cancel();
+    _animationTimer = null;
+    final sprite = _sprite;
+    if (sprite == null ||
+        !sprite.isAnimated ||
+        !_onScreen ||
+        !_settings.value.animateCharms ||
+        !mounted) {
+      return;
+    }
+    _animationTimer =
+        Timer(sprite.untilNextFrame(CharmSprite.clock.elapsed), () {
+      _repaint.value++;
+      _animate();
+    });
   }
 
   void _onTrayCommand(String command) {
@@ -247,6 +283,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void dispose() {
     _settings.removeListener(_onSettingsChanged);
     _gentleTimer?.cancel();
+    _animationTimer?.cancel();
     final frame = _frameCallbackId;
     if (frame != null) {
       SchedulerBinding.instance.cancelFrameCallbackWithId(frame);
@@ -599,7 +636,9 @@ class _CharmOverlayState extends State<CharmOverlay> {
             Positioned.fill(
               child: RepaintBoundary(
                 child: CustomPaint(
-                  painter: CharmPainter(sim, sprite, repaint: _repaint),
+                  painter: CharmPainter(sim, sprite,
+                      repaint: _repaint,
+                      animate: _settings.value.animateCharms),
                 ),
               ),
             ),

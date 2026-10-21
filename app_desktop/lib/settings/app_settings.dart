@@ -10,6 +10,7 @@ class AppSettings {
     this.ropeStyleId = 'thread',
     this.followWindow = true,
     this.charmVisible = true,
+    this.animateCharms = true,
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
     this.welcomeCompleted = false,
@@ -34,6 +35,10 @@ class AppSettings {
 
   /// Shown, or hidden from the tray menu.
   final bool charmVisible;
+
+  /// Whether animated charms play. Off, they show their first frame and
+  /// cost nothing more than a still charm.
+  final bool animateCharms;
 
   /// How far along a window's top edge the pin sits, set by dragging it.
   final double windowAnchorFraction;
@@ -62,6 +67,7 @@ class AppSettings {
     String? ropeStyleId,
     bool? followWindow,
     bool? charmVisible,
+    bool? animateCharms,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
     bool? welcomeCompleted,
@@ -73,6 +79,7 @@ class AppSettings {
       ropeStyleId: ropeStyleId ?? this.ropeStyleId,
       followWindow: followWindow ?? this.followWindow,
       charmVisible: charmVisible ?? this.charmVisible,
+      animateCharms: animateCharms ?? this.animateCharms,
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
       welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
@@ -87,6 +94,7 @@ class AppSettings {
         'ropeStyle': ropeStyleId,
         'followWindow': followWindow,
         'charmVisible': charmVisible,
+        'animateCharms': animateCharms,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
         'welcomeCompleted': welcomeCompleted,
@@ -120,6 +128,7 @@ class AppSettings {
           : d.ropeStyleId,
       followWindow: read<bool>('followWindow', d.followWindow),
       charmVisible: read<bool>('charmVisible', d.charmVisible),
+      animateCharms: read<bool>('animateCharms', d.animateCharms),
       windowAnchorFraction:
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
@@ -138,6 +147,7 @@ class AppSettings {
       other.ropeStyleId == ropeStyleId &&
       other.followWindow == followWindow &&
       other.charmVisible == charmVisible &&
+      other.animateCharms == animateCharms &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
       other.welcomeCompleted == welcomeCompleted &&
@@ -150,6 +160,7 @@ class AppSettings {
       ropeStyleId,
       followWindow,
       charmVisible,
+      animateCharms,
       windowAnchorFraction,
       screenAnchorFraction,
       welcomeCompleted,

@@ -45,11 +45,17 @@ class Charm {
 
   bool get isBuiltIn => art.startsWith('builtin:');
 
-  /// Made by the user: `user:<file>.png`, a file in their charms folder.
+  /// Made by the user: `user:<file>.png` (or .gif, .webp), a file in their charms folder.
   bool get isUser => art.startsWith(userArtPrefix);
 
   static const userArtPrefix = 'user:';
-  static final _userArt = RegExp(r'^user:[A-Za-z0-9_-]+\.png$');
+  static final _userArt = RegExp(r'^user:[A-Za-z0-9_-]+\.(png|gif|webp)$');
+
+  /// Artwork that can move: a GIF or an animated WebP.
+  bool get isAnimatedArt {
+    final lower = art.toLowerCase();
+    return lower.endsWith('.gif') || lower.endsWith('.webp');
+  }
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -115,7 +121,10 @@ class Charm {
     // a path, so an entry can't point anywhere else on disk.
     if (art.startsWith(userArtPrefix)) return _userArt.hasMatch(art);
     final lower = art.toLowerCase();
-    return (lower.endsWith('.svg') || lower.endsWith('.png')) &&
+    return (lower.endsWith('.svg') ||
+            lower.endsWith('.png') ||
+            lower.endsWith('.gif') ||
+            lower.endsWith('.webp')) &&
         !art.contains('..');
   }
 }

@@ -126,7 +126,7 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
                     ),
                     decoration: const InputDecoration(
                       labelText: 'Name or word',
-                      hintText: 'English, हिन्दी or தமிழ்',
+                      hintText: 'English, हिन्दी, தமிழ் or മലയാളം',
                     ),
                   ),
                   const SizedBox(height: 12),

@@ -51,6 +51,18 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   silver, rose gold or black. Lettering: classic (Georgia), modern (Segoe UI)
   or script (Segoe Script). Hindi, Tamil and Malayalam always use Nirmala UI, which
   shapes those scripts properly. The text shrinks to fit its plate or tag.
+- **Animated charms** (My charms → New animated): pick a GIF or animated
+  WebP (up to 8 MB; the first 120 frames are used), name it, set its size.
+  It plays while it hangs, at the file's own timing (but never faster than
+  about 16 frames a second, and the 0 and 10 ms delays many GIFs carry
+  count as 100 ms, as in browsers). Frames are decoded once, no larger than
+  needed, and drawn into cached images like any other charm. The animation
+  stops while the charm is hidden (by you, or by a full-screen window), and
+  Settings → Animate charms turns it off everywhere (one still frame). The
+  file is copied into `%APPDATA%\Charm\charms\` unchanged.
+  Cost: a charm that is asleep costs about 1% of one core; a 10 frames a
+  second animation adds about 5–6% (Flutter's per-frame cost), so laptop
+  users may prefer short or slow animations. Lottie is not supported yet.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -186,6 +198,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Name charms on screen: "Lucky" letters (gold), அம்மா heart tag (correct Tamil shaping), माँ silver bar tag (correct chandrabindu), saved and hanging, then deleted | ✅ |
 | Name charm tests: script detection, Indic font choice, cut by visible letters, text fits every shape, every shape renders (5) | ✅ |
 | Designer on screen: stickers, words, drag to move, midnight enamel with beaded border, saved and hanging, then deleted | ✅ · once, the controls list jumped back to the top between two test steps; not reproduced since |
+| Animated charm on screen (12-frame GIF star): pulses and turns between frames while hanging; CPU 6.6% of one core at 10 fps animating, 1.1% with Animate charms off; memory 144 MB | ✅ |
+| Animated charm tests: gif/webp accepted (path tricks and other types refused), frame timing (0 ms → 100 ms), frame chosen at each time and looping, time to next frame, file type kept on save and delete (5) · Settings tests cover the new switch | ✅ |
+| "New animated" in Customize (file picker, 'doesn't move' and 'over 8 MB' messages) | Written and analyzed, not clicked through |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

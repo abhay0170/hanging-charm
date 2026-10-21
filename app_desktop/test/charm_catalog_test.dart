@@ -64,7 +64,7 @@ void main() {
           {'id': 'ok', 'name': 'Duplicate', 'art': 'a/dup.svg'},
           {'name': 'No id', 'art': 'a/x.svg'},
           {'id': 'no_art', 'name': 'No art'},
-          {'id': 'gif', 'name': 'Wrong type', 'art': 'a/x.gif'},
+          {'id': 'bmp', 'name': 'Wrong type', 'art': 'a/x.bmp'},
           {'id': 'escape', 'name': 'Escape', 'art': '../../secret.svg'},
           'not even a map',
         ],

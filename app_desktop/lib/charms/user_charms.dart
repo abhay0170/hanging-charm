@@ -44,10 +44,13 @@ class UserCharms {
     }
   }
 
-  /// Saves a new charm from its finished artwork. Returns it, ready to hang.
+  /// Saves a new charm from its finished artwork: a [png], or the [bytes]
+  /// of an animation with its [extension] (`gif` or `webp`). Returns it, ready to hang.
   Charm add({
     required String name,
-    required Uint8List png,
+    Uint8List? png,
+    Uint8List? bytes,
+    String extension = 'png',
     String description = '',
     double size = 48,
     double mass = 10,
@@ -55,13 +58,14 @@ class UserCharms {
   }) {
     directory.createSync(recursive: true);
     final id = 'mine_${_randomHex(8)}';
-    File('${directory.path}${Platform.pathSeparator}$id.png')
-        .writeAsBytesSync(png, flush: true);
+    assert((png ?? bytes) != null, 'the artwork is needed');
+    File('${directory.path}${Platform.pathSeparator}$id.$extension')
+        .writeAsBytesSync((png ?? bytes)!, flush: true);
     final charm = Charm(
       id: id,
       name: name.trim().isEmpty ? 'My charm' : name.trim(),
       description: description,
-      art: '${Charm.userArtPrefix}$id.png',
+      art: '${Charm.userArtPrefix}$id.$extension',
       size: size,
       mass: mass,
       hang: hang,

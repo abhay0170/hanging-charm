@@ -20,6 +20,7 @@ class OverlayChannel {
     this.onAnchorMoved,
     this.onTrayCommand,
     this.onCustomizeMessage,
+    this.onVisibility,
   }) {
     _channel.setMethodCallHandler(_handle);
   }
@@ -42,6 +43,10 @@ class OverlayChannel {
 
   /// A message from the Customize window (see `customize/protocol.dart`).
   final void Function(Map<String, Object?> message)? onCustomizeMessage;
+
+  /// The charm's window was shown or hidden (by the user, or because a
+  /// full-screen window is in front).
+  final void Function(bool visible)? onVisibility;
 
   bool _supported = true;
   List<Rect> _sentRects = const [];
@@ -139,6 +144,8 @@ class OverlayChannel {
         if (message is Map) {
           onCustomizeMessage?.call(message.cast<String, Object?>());
         }
+      case 'visibility':
+        onVisibility?.call(call.arguments as bool);
       case 'anchorMoved':
         final delta = call.arguments as List<Object?>;
         onAnchorMoved?.call(Offset(
