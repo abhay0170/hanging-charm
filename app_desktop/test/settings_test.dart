@@ -25,6 +25,7 @@ void main() {
     expect(store.value.savePower, isTrue);
     expect(store.value.soundVolume, 0);
     expect(store.value.breeze, 0);
+    expect(store.value.screenEdge, ScreenEdge.top);
     expect(store.value.extraCharmIds, isEmpty);
   });
 
@@ -40,6 +41,8 @@ void main() {
           savePower: false,
           soundVolume: 0.6,
           breeze: 0.66,
+          screenEdge: ScreenEdge.right,
+          sideAnchorFraction: 0.4,
           extraCharmIds: ['star', 'heart'],
           windowAnchorFraction: 0.31,
           screenAnchorFraction: 0.9,
@@ -54,6 +57,8 @@ void main() {
     expect(again.value.savePower, isFalse);
     expect(again.value.soundVolume, 0.6);
     expect(again.value.breeze, 0.66);
+    expect(again.value.screenEdge, ScreenEdge.right);
+    expect(again.value.sideAnchorFraction, 0.4);
     expect(again.value.extraCharmIds, ['star', 'heart']);
   });
 

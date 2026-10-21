@@ -11,6 +11,12 @@ namespace {
 // Closest the anchor may come to either end of the edge, in logical pixels.
 constexpr double kEdgeMargin = 16;
 
+// A charm hung beside a screen edge hangs this far in from it, so it is
+// all in view at rest, and the pin stays this far above the bottom so the
+// rope and charm fit below it (logical pixels).
+constexpr double kSideInset = 40;
+constexpr double kSideDrop = 300;
+
 // Windows smaller than this (physical pixels) are not worth hanging from.
 constexpr LONG kMinWidth = 200;
 constexpr LONG kMinHeight = 100;
@@ -82,7 +88,36 @@ void AnchorTracker::SetFollowActiveWindow(bool follow) {
   }
 }
 
+void AnchorTracker::SetScreenSide(ScreenSide side) {
+  if (side == side_) return;
+  side_ = side;
+  Update(false);
+}
+
+void AnchorTracker::SideSpan(LONG* top, LONG* bottom, LONG* x) const {
+  MONITORINFO monitor = {sizeof(monitor)};
+  GetMonitorInfo(MonitorFromPoint(anchor_, MONITOR_DEFAULTTONEAREST),
+                 &monitor);
+  const double scale = GetDpiForWindow(overlay_) / 96.0;
+  const LONG inset = static_cast<LONG>(std::lround(kSideInset * scale));
+  *top = monitor.rcMonitor.top + Margin();
+  *bottom = std::max(
+      *top, monitor.rcMonitor.bottom -
+                static_cast<LONG>(std::lround(kSideDrop * scale)));
+  *x = side_ == ScreenSide::kLeft ? monitor.rcMonitor.left + inset
+                                  : monitor.rcMonitor.right - inset;
+}
+
 LONG AnchorTracker::SlideBy(LONG dx) {
+  if (OnSide()) {
+    LONG top, bottom, x;
+    SideSpan(&top, &bottom, &x);
+    const LONG y = std::clamp(anchor_.y + dx, top, bottom);
+    const LONG applied = y - anchor_.y;
+    if (bottom > top) side_fraction_ = double(y - top) / double(bottom - top);
+    Update(false);
+    return applied;
+  }
   const Edge edge = CurrentEdge();
   const LONG margin = Margin();
   const LONG lo = edge.left + margin;
@@ -102,9 +137,11 @@ void AnchorTracker::Validate() {
 }
 
 void AnchorTracker::SetFractions(double window_fraction,
-                                 double screen_fraction) {
+                                 double screen_fraction,
+                                 double side_fraction) {
   window_fraction_ = std::clamp(window_fraction, 0.0, 1.0);
   screen_fraction_ = std::clamp(screen_fraction, 0.0, 1.0);
+  side_fraction_ = std::clamp(side_fraction, 0.0, 1.0);
   Update(false);
 }
 
@@ -201,6 +238,23 @@ LONG AnchorTracker::Margin() const {
 
 void AnchorTracker::Update(bool moved) {
   const bool hidden = target_ && IsFullScreen(target_);
+  if (OnSide()) {
+    LONG top, bottom, x;
+    SideSpan(&top, &bottom, &x);
+    const LONG y =
+        top + static_cast<LONG>(std::lround((bottom - top) * side_fraction_));
+    const POINT side_anchor = {x, y};
+    if (side_anchor.x == anchor_.x && side_anchor.y == anchor_.y &&
+        hidden == hidden_) {
+      return;
+    }
+    // Changing edge jumps the charm; it is not a window move.
+    const bool jumped = side_anchor.x != anchor_.x;
+    anchor_ = side_anchor;
+    hidden_ = hidden;
+    listener_(side_anchor, moved && !jumped, hidden);
+    return;
+  }
   const Edge edge = CurrentEdge();
   const double fraction = target_ ? window_fraction_ : screen_fraction_;
   const LONG margin = Margin();

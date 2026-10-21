@@ -127,6 +127,15 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   power, with Windows animations off, and while the charm is hidden. It
   keeps the charm moving, so it costs about 5–7% of one core more than a
   charm at rest (3% idle → 8–10% measured), at about 20 frames a second.
+- **Hang from a screen edge** (Settings → Where it hangs: Window, Top, Left,
+  Right): besides the active window and the top of the screen, the charm can
+  hang beside the left or right edge of the screen. The pin sits 40 px in
+  from the edge, slides up and down when dragged (its place is saved per
+  edge), and keeps 300 px clear of the bottom so the rope and charm fit.
+  The edge of the screen is a wall: the rope and every charm stop with their
+  edge on it, keeping a quarter of their speed the other way, so a swing
+  never goes out of sight (tested, with extras too). The taskbar is not an
+  anchor: a charm hanging from it would cover the taskbar's own icons.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -280,6 +289,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Physics tests (15 new, 82 in all): breeze sways both ways within 1.5× its angle on every rope, stronger = wider, stops and sleeps when off, never adds to a thrown swing, bad values safe · extras settle apart and asleep, stay on their cords through throws on every rope, knocks reported once and not for a gentle sway, an extra can be carried, rope never stretches, 40 random grabs stay finite, extras sway in a breeze, removing them restores the plain charm | ✅ |
 | Settings tests: extra charms kept in order, at most four, strings only; breeze clamped (2) | ✅ |
 | Library "On your rope" strip, the + buttons and the Breeze slider | Written and analyzed; not clicked through (settings changes were tested through the settings file) |
+| Edges on screen: left and right anchors hang 40 px in from the edge; dragging the left pin down 300 px moved it and saved its place (0.20 → 0.49) | ✅ |
+| Wall tests (6): without a wall it swings past the line, left and right walls stop the charm's edge on them, it comes back with less energy, extras stop at the wall and settle, removing the walls frees it (88 physics tests in all) · Settings tests cover the edge and pin place | ✅ |
+| Wall on screen (a hard throw into the edge), and the Where it hangs buttons in Customize | Not tested on screen (physics tested; settings changed through the settings file) |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

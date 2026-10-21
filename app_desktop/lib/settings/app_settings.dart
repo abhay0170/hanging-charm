@@ -1,5 +1,9 @@
 import 'package:charm_physics/charm_physics.dart';
 
+/// Which edge of the screen the charm hangs from when it is not hanging from
+/// a window: from the top, or beside the left or right edge.
+enum ScreenEdge { top, left, right }
+
 /// Everything the app remembers between launches.
 ///
 /// Launch at login is not here: the operating system's own startup list is
@@ -15,6 +19,8 @@ class AppSettings {
     this.savePower = true,
     this.soundVolume = 0,
     this.breeze = 0,
+    this.screenEdge = ScreenEdge.top,
+    this.sideAnchorFraction = 0.2,
     this.extraCharmIds = const [],
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
@@ -61,6 +67,12 @@ class AppSettings {
   /// rope about 10 degrees at most. It blows on the local clock, not from
   /// the weather: no internet and no location.
   final double breeze;
+
+  /// The screen edge it hangs from when not hanging from a window.
+  final ScreenEdge screenEdge;
+
+  /// How far down a side edge the pin sits (0 top, 1 bottom).
+  final double sideAnchorFraction;
 
   /// More charms on the same rope, besides [charmId]; at most [maxExtras].
   final List<String> extraCharmIds;
@@ -110,6 +122,8 @@ class AppSettings {
     bool? savePower,
     double? soundVolume,
     double? breeze,
+    ScreenEdge? screenEdge,
+    double? sideAnchorFraction,
     List<String>? extraCharmIds,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
@@ -127,6 +141,9 @@ class AppSettings {
       savePower: savePower ?? this.savePower,
       soundVolume: (soundVolume ?? this.soundVolume).clamp(0.0, 1.0).toDouble(),
       breeze: (breeze ?? this.breeze).clamp(0.0, 1.0).toDouble(),
+      screenEdge: screenEdge ?? this.screenEdge,
+      sideAnchorFraction:
+          (sideAnchorFraction ?? this.sideAnchorFraction).clamp(0.0, 1.0).toDouble(),
       extraCharmIds: _limited(extraCharmIds ?? this.extraCharmIds),
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
@@ -147,6 +164,8 @@ class AppSettings {
         'savePower': savePower,
         'soundVolume': soundVolume,
         'breeze': breeze,
+        'screenEdge': screenEdge.name,
+        'sideAnchorFraction': sideAnchorFraction,
         'extraCharms': extraCharmIds,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
@@ -186,6 +205,11 @@ class AppSettings {
       savePower: read<bool>('savePower', d.savePower),
       soundVolume: fraction('soundVolume', d.soundVolume),
       breeze: fraction('breeze', d.breeze),
+      screenEdge: ScreenEdge.values.firstWhere(
+        (e) => e.name == json['screenEdge'],
+        orElse: () => d.screenEdge,
+      ),
+      sideAnchorFraction: fraction('sideAnchorFraction', d.sideAnchorFraction),
       extraCharmIds: _limited([
         if (json['extraCharms'] case final List list)
           for (final id in list)
@@ -214,6 +238,8 @@ class AppSettings {
       other.savePower == savePower &&
       other.soundVolume == soundVolume &&
       other.breeze == breeze &&
+      other.screenEdge == screenEdge &&
+      other.sideAnchorFraction == sideAnchorFraction &&
       _sameIds(other.extraCharmIds, extraCharmIds) &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
@@ -232,6 +258,8 @@ class AppSettings {
       savePower,
       soundVolume,
       breeze,
+      screenEdge,
+      sideAnchorFraction,
       Object.hashAll(extraCharmIds),
       windowAnchorFraction,
       screenAnchorFraction,

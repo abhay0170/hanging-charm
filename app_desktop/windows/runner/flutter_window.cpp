@@ -157,18 +157,29 @@ void FlutterWindow::HandleOverlayCall(
     user_visible_ = *visible;
     UpdateVisibility();
     result->Success();
+  } else if (method == "setScreenEdge") {
+    // 0 = top, 1 = left, 2 = right.
+    const auto* edge = std::get_if<int32_t>(call.arguments());
+    if (!edge || *edge < 0 || *edge > 2) {
+      result->Error("bad_args", "setScreenEdge expects 0, 1 or 2");
+      return;
+    }
+    anchor_tracker_->SetScreenSide(static_cast<ScreenSide>(*edge));
+    result->Success();
   } else if (method == "getAnchorFractions") {
     result->Success(flutter::EncodableValue(std::vector<double>{
         anchor_tracker_->window_fraction(),
-        anchor_tracker_->screen_fraction()}));
+        anchor_tracker_->screen_fraction(),
+        anchor_tracker_->side_fraction()}));
   } else if (method == "setAnchorFractions") {
-    // [window fraction, screen fraction], restored from saved settings.
+    // [window fraction, screen fraction, side fraction], restored from
+    // saved settings.
     const auto* values = std::get_if<std::vector<double>>(call.arguments());
-    if (!values || values->size() != 2) {
-      result->Error("bad_args", "setAnchorFractions expects 2 doubles");
+    if (!values || values->size() != 3) {
+      result->Error("bad_args", "setAnchorFractions expects 3 doubles");
       return;
     }
-    anchor_tracker_->SetFractions((*values)[0], (*values)[1]);
+    anchor_tracker_->SetFractions((*values)[0], (*values)[1], (*values)[2]);
     result->Success();
   } else if (method == "getLaunchAtLogin") {
     result->Success(flutter::EncodableValue(login_item::IsEnabled()));

@@ -119,6 +119,27 @@ class RopeSim {
         0.2 * math.sin(tau * 0.34 * seconds + 4.0);
   }
 
+  // ---- Walls ----
+
+  double? _wallLeft;
+  double? _wallRight;
+  double _wallCharmRadius = 22;
+
+  /// Fraction of its speed a charm keeps when it hits a wall, going back
+  /// the other way.
+  static const double wallBounce = 0.25;
+
+  /// Keeps the rope and charms inside a vertical wall on the left and / or
+  /// right (x positions, null for none): the edge of the screen when the
+  /// charm hangs beside it. The main charm and the extras stop with their
+  /// edge, [charmRadius] wide, at the wall.
+  void setWalls({double? left, double? right, double charmRadius = 22}) {
+    _wallLeft = left;
+    _wallRight = right;
+    _wallCharmRadius = charmRadius;
+    wake();
+  }
+
   // ---- Extra charms ----
 
   List<ExtraCharm> _extras = const [];
@@ -413,6 +434,7 @@ class RopeSim {
     _attachToAnchor();
     _tightenRope();
     if (_extras.isNotEmpty) _stepExtras(windStep);
+    if (_wallLeft != null || _wallRight != null) _hitWalls();
     _limitEnergy(
         userInput: _handActive ||
             anchorMoving ||
@@ -596,6 +618,38 @@ class RopeSim {
       }
     } else {
       _stillSteps = 0;
+    }
+  }
+
+  /// Stops anything that went through a wall, keeping a little of its
+  /// speed the other way.
+  void _hitWalls() {
+    final left = _wallLeft, right = _wallRight;
+    final n = _px.length - 1;
+
+    // Returns the new position and the speed to keep (as an old position).
+    void bounce(Float64List p, Float64List o, int i, double radius) {
+      final lo = left == null ? double.negativeInfinity : left + radius;
+      final hi = right == null ? double.infinity : right - radius;
+      final x = p[i];
+      if (x < lo) {
+        final v = x - o[i];
+        p[i] = lo;
+        o[i] = lo + wallBounce * math.min(v, 0.0);
+      } else if (x > hi) {
+        final v = x - o[i];
+        p[i] = hi;
+        o[i] = hi + wallBounce * math.max(v, 0.0);
+      }
+    }
+
+    for (var i = 1; i <= n; i++) {
+      if (i == n && _grabbed) continue;
+      bounce(_px, _ox, i, i == n ? _wallCharmRadius : 0);
+    }
+    for (var k = 0; k < _extras.length; k++) {
+      if (k == _grabbedExtra) continue;
+      bounce(_ex, _eox, k, _extras[k].radius);
     }
   }
 

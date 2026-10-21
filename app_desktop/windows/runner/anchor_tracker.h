@@ -14,6 +14,10 @@
 // - it jumped to another window or back to the screen: |moved| is false, the
 //   charm goes along as it is;
 // - a full-screen app is in front: |hidden| is true.
+// Which edge of the screen the charm hangs from when it is not hanging from
+// a window: the top, or beside the left or right edge.
+enum class ScreenSide { kTop, kLeft, kRight };
+
 class AnchorTracker {
  public:
   using Listener = std::function<void(POINT anchor, bool moved, bool hidden)>;
@@ -28,10 +32,15 @@ class AnchorTracker {
   void SetFollowActiveWindow(bool follow);
   bool follows_active_window() const { return follow_; }
 
-  // Slides the anchor along the edge it hangs from by |dx| physical pixels,
-  // stopping short of the edge's ends. Returns how far it actually moved.
-  // The listener hears about it with |moved| false: the caller already knows.
-  LONG SlideBy(LONG dx);
+  // Which screen edge to hang from (when not hanging from a window).
+  void SetScreenSide(ScreenSide side);
+  ScreenSide screen_side() const { return side_; }
+
+  // Slides the anchor along the edge it hangs from by |delta| physical
+  // pixels (sideways on a top edge, up or down on a side edge), stopping
+  // short of the edge's ends. Returns how far it actually moved. The
+  // listener hears about it with |moved| false: the caller already knows.
+  LONG SlideBy(LONG delta);
 
   // Drops a window that has closed, been minimised or hidden. Cheap; call it
   // a few times a second.
@@ -41,7 +50,10 @@ class AnchorTracker {
   // so it can be saved and restored.
   double window_fraction() const { return window_fraction_; }
   double screen_fraction() const { return screen_fraction_; }
-  void SetFractions(double window_fraction, double screen_fraction);
+  // How far down a side edge the pin sits (0..1).
+  double side_fraction() const { return side_fraction_; }
+  void SetFractions(double window_fraction, double screen_fraction,
+                    double side_fraction);
 
  private:
   // Where the anchor may sit: a span along a top edge.
@@ -69,6 +81,10 @@ class AnchorTracker {
   HWINEVENTHOOK location_hook_ = nullptr;
 
   bool follow_ = false;
+  ScreenSide side_ = ScreenSide::kTop;
+  bool OnSide() const { return !target_ && side_ != ScreenSide::kTop; }
+  // Where a side anchor may sit, top to bottom, in physical pixels.
+  void SideSpan(LONG* top, LONG* bottom, LONG* x) const;
   HWND target_ = nullptr;
   bool hidden_ = false;
   POINT anchor_;
@@ -77,6 +93,7 @@ class AnchorTracker {
   // Kept separately for windows and the screen; dragging the pin sets it.
   double window_fraction_ = 0.72;
   double screen_fraction_ = 0.72;
+  double side_fraction_ = 0.2;
 };
 
 #endif  // RUNNER_ANCHOR_TRACKER_H_

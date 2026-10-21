@@ -151,9 +151,17 @@ class _CharmOverlayState extends State<CharmOverlay> {
       _channel.setCharmVisible(next.charmVisible);
     }
     if (old?.windowAnchorFraction != next.windowAnchorFraction ||
-        old?.screenAnchorFraction != next.screenAnchorFraction) {
-      _channel.setAnchorFractions(
-          next.windowAnchorFraction, next.screenAnchorFraction);
+        old?.screenAnchorFraction != next.screenAnchorFraction ||
+        old?.sideAnchorFraction != next.sideAnchorFraction) {
+      _channel.setAnchorFractions(next.windowAnchorFraction,
+          next.screenAnchorFraction, next.sideAnchorFraction);
+    }
+    if (old?.screenEdge != next.screenEdge) {
+      _channel.setScreenEdge(next.screenEdge.index);
+    }
+    if (old?.screenEdge != next.screenEdge ||
+        old?.followWindow != next.followWindow) {
+      _applyWalls();
     }
   }
 
@@ -188,6 +196,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     setState(() => _sprite = sprite);
     _sim?.charmMass = charm.mass;
     if (_extraSprites.isNotEmpty) _applyExtras();
+    _applyWalls();
     _wake();
     _animate();
   }
@@ -502,7 +511,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (fractions == null) return;
     _settings.update((s) => s.copyWith(
         windowAnchorFraction: fractions.$1,
-        screenAnchorFraction: fractions.$2));
+        screenAnchorFraction: fractions.$2,
+        sideAnchorFraction: fractions.$3));
   }
 
   /// The window the charm hangs from moved, and this overlay moved with it.
@@ -571,6 +581,35 @@ class _CharmOverlayState extends State<CharmOverlay> {
     );
   }
 
+  // ---- Hanging beside a screen edge ----
+  //
+  // Hung from the left or right edge, the pin sits 40 px in from it and
+  // slides up and down; the charm and rope stop at the edge of the screen
+  // rather than swinging out of sight.
+
+  static const double _sideInset = 40;
+
+  /// Hanging beside an edge (and not from a window).
+  bool get _beside =>
+      _settings.value.screenEdge != ScreenEdge.top &&
+      !_settings.value.followWindow;
+
+  void _applyWalls() {
+    final sim = _sim;
+    if (sim == null) return;
+    if (!_beside) {
+      sim.setWalls();
+      return;
+    }
+    final centre = _size.width / 2;
+    final left = _settings.value.screenEdge == ScreenEdge.left;
+    sim.setWalls(
+      left: left ? centre - _sideInset : null,
+      right: left ? null : centre + _sideInset,
+      charmRadius: _hitRadius * 0.85,
+    );
+  }
+
   // ---- Dragging the anchor moves the window. ----
 
   double? _pendingAnchorX;
@@ -587,10 +626,16 @@ class _CharmOverlayState extends State<CharmOverlay> {
       final target = _pendingAnchorX!;
       _pendingAnchorX = null;
       if (sim == null) break;
-      final dx = target - sim.anchorTargetX;
+      final beside = _beside;
+      final dx = target - (beside ? sim.anchorTargetY : sim.anchorTargetX);
       if (dx.abs() < 0.5) continue;
       final applied = await _channel.moveBy(dx);
-      if (applied == null) {
+      if (applied != null && beside) {
+        // The window moved down or up by [applied]; the rope stays where it
+        // was on screen and the anchor glides back to the window's top.
+        sim.shiftFrame(0, -applied);
+        sim.moveAnchor(sim.anchorTargetX, sim.anchorTargetY + applied);
+      } else if (applied == null) {
         // No native window to move: slide the anchor inside the window.
         sim.moveAnchor(
             target.clamp(16.0, math.max(16.0, _size.width - 16)).toDouble(),
@@ -637,6 +682,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   /// finish loading before the first layout); it is carried out as soon as
   /// the rope is made, rather than starting a loop with nothing to run.
   bool _wakeWhenReady = false;
+  bool _wallsSet = false;
 
   void _wake() {
     if (_sim == null) {
@@ -844,7 +890,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
       _wake();
     } else if (_hitsAnchor(p)) {
       _drag = _Drag.anchor;
-      _grabOffset = Offset(sim.anchorX - p.dx, 0);
+      // On a side edge the pin slides up and down.
+      _grabOffset = _beside
+          ? Offset(0, sim.anchorY - p.dy)
+          : Offset(sim.anchorX - p.dx, 0);
       _channel.holdInteractive(true);
     }
   }
@@ -859,7 +908,9 @@ class _CharmOverlayState extends State<CharmOverlay> {
         sim.dragTo(target.dx, target.dy);
         _wake();
       case _Drag.anchor:
-        _moveAnchorTo(e.localPosition.dx + _grabOffset.dx);
+        _moveAnchorTo(_beside
+            ? e.localPosition.dy + _grabOffset.dy
+            : e.localPosition.dx + _grabOffset.dx);
       case _Drag.none:
         break;
     }
@@ -970,6 +1021,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
         _applyExtras();
       }
       _syncBreeze(sim);
+      if (!_wallsSet) {
+        _wallsSet = true;
+        _applyWalls();
+      }
       if (_wakeWhenReady || (!_running && !sim.asleep)) {
         _wakeWhenReady = false;
         _wake();

@@ -107,18 +107,25 @@ class OverlayChannel {
   Future<void> setCharmVisible(bool visible) =>
       _call('setCharmVisible', visible);
 
-  /// Where along a window's and the screen's top edge the pin sits (0..1).
-  Future<(double, double)?> getAnchorFractions() async {
+  /// Where the pin sits along a window's top edge, the screen's top edge,
+  /// and down a side edge (each 0..1).
+  Future<(double, double, double)?> getAnchorFractions() async {
     final values = await _call('getAnchorFractions');
-    if (values is! List || values.length != 2) return null;
+    if (values is! List || values.length != 3) return null;
     return (
       (values[0] as num).toDouble(),
       (values[1] as num).toDouble(),
+      (values[2] as num).toDouble(),
     );
   }
 
-  Future<void> setAnchorFractions(double window, double screen) =>
-      _call('setAnchorFractions', Float64List.fromList([window, screen]));
+  Future<void> setAnchorFractions(double window, double screen, double side) =>
+      _call('setAnchorFractions',
+          Float64List.fromList([window, screen, side]));
+
+  /// Hang from the top of the screen (0) or beside its left (1) or right (2)
+  /// edge.
+  Future<void> setScreenEdge(int edge) => _call('setScreenEdge', edge);
 
   /// Opens the Customize window, or brings it to the front.
   Future<void> openCustomize() => _call('openCustomize');

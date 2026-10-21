@@ -836,6 +836,37 @@ class _SettingsPageState extends State<_SettingsPage> {
       title: 'Settings',
       subtitle: 'How the charm behaves on this computer.',
       children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Where it hangs'),
+          subtitle: const Text('From the window you are using, from the top '
+              'of the screen, or beside the left or right edge (where it '
+              'stops at the screen’s edge). Drag the pin to slide it.'),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: 'window', label: Text('Window')),
+              ButtonSegment(value: 'top', label: Text('Top')),
+              ButtonSegment(value: 'left', label: Text('Left')),
+              ButtonSegment(value: 'right', label: Text('Right')),
+            ],
+            selected: {
+              widget.settings.followWindow
+                  ? 'window'
+                  : widget.settings.screenEdge.name,
+            },
+            onSelectionChanged: (v) {
+              final pick = v.first;
+              widget.channel.update(pick == 'window'
+                  ? {'followWindow': true}
+                  : {'followWindow': false, 'screenEdge': pick});
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Show charm'),

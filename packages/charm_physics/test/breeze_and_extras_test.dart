@@ -26,9 +26,10 @@ RopeSim cluster({RopeStyle style = RopeStyle.thread}) {
   return sim;
 }
 
-double distanceToRing(RopeSim sim, int k) =>
-    math.sqrt(math.pow(sim.extraX(k) - sim.ringX, 2) +
-        math.pow(sim.extraY(k) - sim.ringY, 2));
+double distanceToRing(RopeSim sim, int k) => math.sqrt(
+  math.pow(sim.extraX(k) - sim.ringX, 2) +
+      math.pow(sim.extraY(k) - sim.ringY, 2),
+);
 
 /// Throws the main charm: carries it [reach] px sideways over a quarter
 /// second and lets go.
@@ -42,6 +43,7 @@ void throwCharm(RopeSim sim, double reach) {
 }
 
 void main() {
+  wallTests();
   group('breeze', () {
     test('no breeze means the rope never moves by itself', () {
       final sim = RopeSim(anchorX: 0, anchorY: 0);
@@ -50,28 +52,36 @@ void main() {
       expect(sim.asleep, isTrue);
     });
 
-    test('a breeze sways it both ways, no further than its strength allows',
-        () {
-      for (final style in RopeStyle.all) {
-        for (final strength in [3.0, 6.0, 10.0]) {
-          final sim = RopeSim(style: style, anchorX: 0, anchorY: 0);
-          sim.windAngle = strength * deg;
-          var left = 0.0, right = 0.0;
-          run(sim, 60, () {
-            left = math.min(left, sim.swingAngle);
-            right = math.max(right, sim.swingAngle);
-          });
-          expect(sim.asleep, isFalse, reason: 'a breeze keeps it moving');
-          final widest = math.max(-left, right);
-          expect(widest, lessThan(strength * 1.5 * deg),
-              reason: '${style.name} at $strength degrees');
-          expect(widest, greaterThan(strength * 0.3 * deg),
-              reason: '${style.name} should visibly sway');
-          expect(left, lessThan(0), reason: 'sways to the left too');
-          expect(right, greaterThan(0), reason: 'and to the right');
+    test(
+      'a breeze sways it both ways, no further than its strength allows',
+      () {
+        for (final style in RopeStyle.all) {
+          for (final strength in [3.0, 6.0, 10.0]) {
+            final sim = RopeSim(style: style, anchorX: 0, anchorY: 0);
+            sim.windAngle = strength * deg;
+            var left = 0.0, right = 0.0;
+            run(sim, 60, () {
+              left = math.min(left, sim.swingAngle);
+              right = math.max(right, sim.swingAngle);
+            });
+            expect(sim.asleep, isFalse, reason: 'a breeze keeps it moving');
+            final widest = math.max(-left, right);
+            expect(
+              widest,
+              lessThan(strength * 1.5 * deg),
+              reason: '${style.name} at $strength degrees',
+            );
+            expect(
+              widest,
+              greaterThan(strength * 0.3 * deg),
+              reason: '${style.name} should visibly sway',
+            );
+            expect(left, lessThan(0), reason: 'sways to the left too');
+            expect(right, greaterThan(0), reason: 'and to the right');
+          }
         }
-      }
-    });
+      },
+    );
 
     test('a stronger breeze sways it further', () {
       double widest(double strength) {
@@ -132,7 +142,10 @@ void main() {
       expect(sim.asleep, isTrue);
       expect(sim.extraCount, 4);
       for (var k = 0; k < 4; k++) {
-        expect(distanceToRing(sim, k), lessThanOrEqualTo(_extras[k].reach + 0.5));
+        expect(
+          distanceToRing(sim, k),
+          lessThanOrEqualTo(_extras[k].reach + 0.5),
+        );
         expect(sim.extraX(k).isFinite && sim.extraY(k).isFinite, isTrue);
       }
       // No two overlap by more than a pixel or two.
@@ -141,9 +154,14 @@ void main() {
       final ys = [sim.charmCenterY, for (var k = 0; k < 4; k++) sim.extraY(k)];
       for (var a = 0; a < 5; a++) {
         for (var b = a + 1; b < 5; b++) {
-          final d = math.sqrt(math.pow(xs[a] - xs[b], 2) + math.pow(ys[a] - ys[b], 2));
-          expect(d, greaterThan(radii[a] + radii[b] - 3),
-              reason: 'charms $a and $b overlap');
+          final d = math.sqrt(
+            math.pow(xs[a] - xs[b], 2) + math.pow(ys[a] - ys[b], 2),
+          );
+          expect(
+            d,
+            greaterThan(radii[a] + radii[b] - 3),
+            reason: 'charms $a and $b overlap',
+          );
         }
       }
     });
@@ -155,8 +173,10 @@ void main() {
         throwCharm(sim, 160);
         run(sim, 12, () {
           for (var k = 0; k < 4; k++) {
-            expect(distanceToRing(sim, k),
-                lessThanOrEqualTo(_extras[k].reach + 1.5));
+            expect(
+              distanceToRing(sim, k),
+              lessThanOrEqualTo(_extras[k].reach + 1.5),
+            );
             expect(sim.extraX(k).abs(), lessThan(600));
             expect(sim.extraY(k), lessThan(600));
           }
@@ -228,8 +248,10 @@ void main() {
         final y = pick == 0 ? sim.charmY : sim.extraY(pick - 1);
         sim.grab(x, y, charm: pick);
         for (var f = 0; f < 20; f++) {
-          sim.dragTo(x + (random.nextDouble() - 0.5) * 300,
-              y + (random.nextDouble() - 0.3) * 200);
+          sim.dragTo(
+            x + (random.nextDouble() - 0.5) * 300,
+            y + (random.nextDouble() - 0.3) * 200,
+          );
           run(sim, 1 / 60);
         }
         sim.release();
@@ -260,6 +282,100 @@ void main() {
       expect(sim.extraCount, 0);
       run(sim, 5);
       expect(sim.asleep, isTrue);
+    });
+  });
+}
+
+void wallTests() {
+  group('walls', () {
+    double leftmost(RopeSim sim) {
+      var most = double.infinity;
+      for (var i = 0; i < sim.particleCount; i++) {
+        most = math.min(most, sim.x(i));
+      }
+      for (var k = 0; k < sim.extraCount; k++) {
+        most = math.min(most, sim.extraX(k) - _extras[k].radius);
+      }
+      return most;
+    }
+
+    test('without a wall a hard throw swings out past the line', () {
+      final sim = RopeSim(anchorX: 0, anchorY: 0);
+      throwCharm(sim, -150);
+      var most = 0.0;
+      run(sim, 4, () => most = math.min(most, sim.charmX));
+      expect(most, lessThan(-60));
+    });
+
+    test('a wall on the left stops the charm with its edge on the wall', () {
+      final sim = RopeSim(anchorX: 0, anchorY: 0);
+      sim.setWalls(left: -40, charmRadius: 20);
+      throwCharm(sim, -150);
+      var most = 0.0;
+      run(sim, 8, () {
+        most = math.min(most, sim.charmX);
+        expect(leftmost(sim), greaterThanOrEqualTo(-40 - 0.5));
+      });
+      expect(most, greaterThanOrEqualTo(-20 - 0.5));
+      expect(most, lessThan(-15), reason: 'it did reach the wall');
+    });
+
+    test('a wall on the right works the same way', () {
+      final sim = RopeSim(anchorX: 0, anchorY: 0);
+      sim.setWalls(right: 40, charmRadius: 20);
+      throwCharm(sim, 150);
+      var most = 0.0;
+      run(sim, 8, () {
+        most = math.max(most, sim.charmX);
+        for (var i = 0; i < sim.particleCount; i++) {
+          expect(sim.x(i), lessThanOrEqualTo(40 + 0.5));
+        }
+      });
+      expect(most, lessThanOrEqualTo(20 + 0.5));
+    });
+
+    test('it comes back off the wall, and loses energy doing so', () {
+      final sim = RopeSim(anchorX: 0, anchorY: 0);
+      sim.setWalls(left: -40, charmRadius: 20);
+      throwCharm(sim, -150);
+      var touched = false, cameBack = false;
+      var early = double.negativeInfinity, late = double.negativeInfinity;
+      run(sim, 1.5, () {
+        if (sim.charmX <= -19.5) touched = true;
+        early = math.max(early, sim.energy);
+      });
+      run(sim, 12, () {
+        if (sim.charmX <= -19.5) touched = true;
+        if (touched && sim.charmX > 0) cameBack = true;
+      });
+      run(sim, 5, () => late = math.max(late, sim.energy));
+      expect(touched, isTrue);
+      expect(cameBack, isTrue);
+      expect(late, lessThan(early));
+    });
+
+    test('extra charms stop at the wall too, and it settles', () {
+      final sim = cluster();
+      sim.setWalls(left: -60, charmRadius: 24);
+      run(sim, 3);
+      throwCharm(sim, -170);
+      run(
+        sim,
+        10,
+        () => expect(leftmost(sim), greaterThanOrEqualTo(-60 - 0.5)),
+      );
+      run(sim, 60);
+      expect(sim.asleep, isTrue);
+    });
+
+    test('taking the walls away lets it swing free again', () {
+      final sim = RopeSim(anchorX: 0, anchorY: 0);
+      sim.setWalls(left: -40, charmRadius: 20);
+      sim.setWalls();
+      throwCharm(sim, -150);
+      var most = 0.0;
+      run(sim, 4, () => most = math.min(most, sim.charmX));
+      expect(most, lessThan(-60));
     });
   });
 }
