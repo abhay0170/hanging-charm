@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../charms/charm.dart';
+import '../charms/locket.dart';
 import '../charms/photo_charm.dart';
 import '../charms/user_charms.dart';
 
@@ -38,7 +39,12 @@ class PhotoCharmEditor extends StatefulWidget {
     required this.photo,
     required this.userCharms,
     this.suggestedName = '',
+    this.locket = false,
   });
+
+  /// Make a locket (a cover that opens on this photo) instead of a plain
+  /// photo charm.
+  final bool locket;
 
   final ui.Image photo;
   final UserCharms userCharms;
@@ -53,11 +59,16 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
   static const double _previewWidth = 280;
 
   var _design = const PhotoCharmDesign();
+  final _engraving = TextEditingController();
+
+  /// A locket's preview: its cover, or its inside.
+  bool _showInside = true;
   late final _name = TextEditingController(text: widget.suggestedName);
   bool _saving = false;
 
   @override
   void dispose() {
+    _engraving.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -88,11 +99,19 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final png = await _design.renderPng(widget.photo);
+    final inside = await _design.renderPng(widget.photo);
+    final cover = widget.locket
+        ? await LocketDesign(photo: _design, engraving: _engraving.text)
+            .renderCoverPng()
+        : null;
     final charm = widget.userCharms.add(
       name: _name.text,
-      png: png,
-      description: 'Made from your photo.',
+      // A locket hangs by its cover and keeps the photo for when it opens.
+      png: cover ?? inside,
+      openPng: cover == null ? null : inside,
+      description: widget.locket
+          ? 'Tap it to open.'
+          : 'Made from your photo.',
       size: _design.charmSize,
       mass: 10,
       hang: _design.hang,
@@ -105,7 +124,10 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('New charm from a photo')),
+      appBar: AppBar(
+          title: Text(widget.locket
+              ? 'New locket'
+              : 'New charm from a photo')),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(32, 8, 32, 24),
         child: Row(
@@ -126,13 +148,35 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
                       onPanUpdate: (d) => _drag(d.delta),
                       child: CustomPaint(
                         size: _previewSize,
-                        painter: _PreviewPainter(_design, widget.photo),
+                        painter: _PreviewPainter(
+                            _design,
+                            widget.photo,
+                            widget.locket && !_showInside
+                                ? LocketDesign(
+                                    photo: _design,
+                                    engraving: _engraving.text)
+                                : null),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('Drag the photo to place it. Scroll to zoom.',
+                if (widget.locket) ...[
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('Cover')),
+                      ButtonSegment(value: true, label: Text('Inside')),
+                    ],
+                    selected: {_showInside},
+                    onSelectionChanged: (v) =>
+                        setState(() => _showInside = v.first),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                    widget.locket && !_showInside
+                        ? 'This is how it hangs. Tap it to see inside.'
+                        : 'Drag the photo to place it. Scroll to zoom.',
                     style: text.bodySmall
                         ?.copyWith(color: scheme.onSurfaceVariant)),
               ],
@@ -149,6 +193,20 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
                       hintText: 'Who or what is it?',
                     ),
                   ),
+                  if (widget.locket) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _engraving,
+                      maxLength: LocketDesign.maxEngraving,
+                      onChanged: (_) => setState(() => _showInside = false),
+                      style: const TextStyle(
+                          fontFamilyFallback: ['Nirmala UI', 'Segoe UI']),
+                      decoration: const InputDecoration(
+                        labelText: 'Engraving on the cover',
+                        hintText: 'An initial, or leave empty',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Text('Frame', style: text.titleSmall),
                   const SizedBox(height: 8),
@@ -233,15 +291,19 @@ class _PhotoCharmEditorState extends State<PhotoCharmEditor> {
 }
 
 class _PreviewPainter extends CustomPainter {
-  _PreviewPainter(this.design, this.photo);
+  _PreviewPainter(this.design, this.photo, this.cover);
 
   final PhotoCharmDesign design;
   final ui.Image photo;
 
-  @override
-  void paint(Canvas canvas, Size size) => design.paint(canvas, size, photo);
+  /// Set to show a locket's cover instead of the photo.
+  final LocketDesign? cover;
 
   @override
-  bool shouldRepaint(_PreviewPainter old) =>
-      old.design != design || old.photo != photo;
+  void paint(Canvas canvas, Size size) => cover != null
+      ? cover!.paintCover(canvas, size)
+      : design.paint(canvas, size, photo);
+
+  @override
+  bool shouldRepaint(_PreviewPainter old) => true;
 }

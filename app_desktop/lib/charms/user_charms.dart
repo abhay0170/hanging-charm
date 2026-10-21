@@ -26,6 +26,10 @@ class UserCharms {
   File fileFor(Charm charm) => File('${directory.path}'
       '${Platform.pathSeparator}${charm.art.substring(Charm.userArtPrefix.length)}');
 
+  /// The PNG behind a locket's inside.
+  File openFileFor(Charm charm) => File('${directory.path}'
+      '${Platform.pathSeparator}${charm.openArt!.substring(Charm.userArtPrefix.length)}');
+
   /// Every saved charm whose entry is usable, newest first. A missing or
   /// damaged list reads as none.
   List<Charm> load() {
@@ -36,7 +40,9 @@ class UserCharms {
       return [
         for (final entry in list)
           if (Charm.fromJson(entry) case final charm?
-              when charm.isUser && fileFor(charm).existsSync())
+              when charm.isUser &&
+                  fileFor(charm).existsSync() &&
+                  (!charm.isLocket || openFileFor(charm).existsSync()))
             charm,
       ];
     } on Object {
@@ -51,6 +57,7 @@ class UserCharms {
     Uint8List? png,
     Uint8List? bytes,
     String extension = 'png',
+    Uint8List? openPng,
     String description = '',
     double size = 48,
     double mass = 10,
@@ -61,6 +68,11 @@ class UserCharms {
     assert((png ?? bytes) != null, 'the artwork is needed');
     File('${directory.path}${Platform.pathSeparator}$id.$extension')
         .writeAsBytesSync((png ?? bytes)!, flush: true);
+    // A locket's inside is saved beside its cover.
+    if (openPng != null) {
+      File('${directory.path}${Platform.pathSeparator}${id}_open.png')
+          .writeAsBytesSync(openPng, flush: true);
+    }
     final charm = Charm(
       id: id,
       name: name.trim().isEmpty ? 'My charm' : name.trim(),
@@ -69,6 +81,7 @@ class UserCharms {
       size: size,
       mass: mass,
       hang: hang,
+      openArt: openPng == null ? null : '${Charm.userArtPrefix}${id}_open.png',
     );
     _write([charm, ...load()]);
     return charm;
@@ -79,6 +92,7 @@ class UserCharms {
     final all = load();
     for (final charm in all.where((c) => c.id == id)) {
       try {
+        if (charm.isLocket) openFileFor(charm).deleteSync();
         fileFor(charm).deleteSync();
       } on FileSystemException {
         // Already gone.

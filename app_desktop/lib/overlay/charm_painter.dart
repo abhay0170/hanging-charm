@@ -23,13 +23,20 @@ Offset _upFromCharm(RopeSim sim) {
 /// Draws the anchor pin, the rope in its style, and the charm.
 class CharmPainter extends CustomPainter {
   CharmPainter(this.sim, this.sprite,
-      {required Listenable super.repaint, this.animate = true});
+      {required Listenable super.repaint,
+      this.animate = true,
+      this.locketOpen = _closed});
+
+  static double _closed() => 0;
 
   final RopeSim sim;
   final CharmSprite sprite;
 
   /// Whether an animated charm shows its moving frames or just its first.
   final bool animate;
+
+  /// How far a locket has turned over: 0 shows its cover, 1 its inside.
+  final double Function() locketOpen;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -277,11 +284,20 @@ class CharmPainter extends CustomPainter {
     // Turn the artwork so its hang point lies straight up the rope from its
     // centre, the way a real charm settles under its own weight.
     final turn = up.direction - hang.direction;
-    final image =
+    var image =
         animate ? sprite.imageAt(CharmSprite.clock.elapsed) : sprite.image;
+    // A locket turns over about its vertical axis: its cover narrows to an
+    // edge, then its inside widens out.
+    var across = 1.0;
+    if (sprite.isLocket) {
+      final open = locketOpen();
+      image = open < 0.5 ? sprite.image : sprite.openImage;
+      across = math.max(0.02, (open < 0.5 ? 1 - 2 * open : 2 * open - 1));
+    }
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(turn);
+    canvas.scale(across, 1);
     canvas.drawImageRect(
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),

@@ -159,10 +159,68 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (dpr == null) return; // Before the first build; build asks again.
     final sprite = await CharmSprite.load(charm, dpr);
     if (!mounted || _wantedCharm != charm.id) return;
+    _resetLocket();
     setState(() => _sprite = sprite);
     _sim?.charmMass = charm.mass;
     _wake();
     _animate();
+  }
+
+  // ---- Lockets ----
+  //
+  // Tapping a locket turns it over to show the photo inside; tapping again
+  // turns it back. It closes by itself after a while, so a photo is never
+  // left up on the screen.
+
+  static const Duration _locketTurn = Duration(milliseconds: 260);
+  static const Duration _locketStaysOpen = Duration(seconds: 8);
+
+  Offset _downAt = Offset.zero;
+  Duration _downTime = Duration.zero;
+  double _travel = 0;
+
+  bool _locketWantsOpen = false;
+  double _locketProgress = 0;
+  Timer? _locketTimer;
+  Timer? _locketCloser;
+  Duration _locketLast = Duration.zero;
+
+  void _toggleLocket() {
+    if (_sprite?.isLocket != true) return;
+    _turnLocket(!_locketWantsOpen);
+  }
+
+  void _turnLocket(bool open) {
+    _locketWantsOpen = open;
+    _locketCloser?.cancel();
+    _locketCloser = open
+        ? Timer(_locketStaysOpen, () => _turnLocket(false))
+        : null;
+    if (_locketTimer != null) return;
+    _locketLast = _clock.elapsed;
+    _locketTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
+      final now = _clock.elapsed;
+      final step = (now - _locketLast).inMicroseconds / _locketTurn.inMicroseconds;
+      _locketLast = now;
+      _locketProgress = (_locketProgress + (_locketWantsOpen ? step : -step))
+          .clamp(0.0, 1.0)
+          .toDouble();
+      _repaint.value++;
+      if (_locketProgress == (_locketWantsOpen ? 1 : 0)) {
+        _locketTimer?.cancel();
+        _locketTimer = null;
+      }
+    });
+  }
+
+  /// A new charm starts closed.
+  void _resetLocket() {
+    _locketCloser?.cancel();
+    _locketCloser = null;
+    _locketTimer?.cancel();
+    _locketTimer = null;
+    _locketWantsOpen = false;
+    _locketProgress = 0;
   }
 
   // ---- Animated charms ----
@@ -284,6 +342,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _settings.removeListener(_onSettingsChanged);
     _gentleTimer?.cancel();
     _animationTimer?.cancel();
+    _locketTimer?.cancel();
+    _locketCloser?.cancel();
     final frame = _frameCallbackId;
     if (frame != null) {
       SchedulerBinding.instance.cancelFrameCallbackWithId(frame);
@@ -502,6 +562,9 @@ class _CharmOverlayState extends State<CharmOverlay> {
     final sim = _sim;
     if (sim == null) return;
     final p = e.localPosition;
+    _downAt = p;
+    _downTime = _clock.elapsed;
+    _travel = 0;
 
     if (_menuRect != null && !_menuRect!.contains(p)) _closeMenu();
     if (e.buttons == kSecondaryMouseButton && _hitsCharm(p)) {
@@ -528,6 +591,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (sim == null) return;
     switch (_drag) {
       case _Drag.charm:
+        _travel = math.max(_travel, (e.localPosition - _downAt).distance);
         final target = e.localPosition + _grabOffset;
         sim.dragTo(target.dx, target.dy);
         _wake();
@@ -540,7 +604,15 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   void _onPointerUp(PointerEvent e) {
     if (_drag == _Drag.none) return;
-    if (_drag == _Drag.charm) _sim?.release();
+    if (_drag == _Drag.charm) {
+      _sim?.release();
+      // A quick press that hardly moved is a tap.
+      if (e is PointerUpEvent &&
+          _travel < 6 &&
+          _clock.elapsed - _downTime < const Duration(milliseconds: 500)) {
+        _toggleLocket();
+      }
+    }
     if (_drag == _Drag.anchor) _savePinPosition();
     _drag = _Drag.none;
     _channel.holdInteractive(false);
@@ -638,7 +710,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
                 child: CustomPaint(
                   painter: CharmPainter(sim, sprite,
                       repaint: _repaint,
-                      animate: _settings.value.animateCharms),
+                      animate: _settings.value.animateCharms,
+                      locketOpen: () => _locketProgress),
                 ),
               ),
             ),

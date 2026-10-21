@@ -15,6 +15,7 @@ class Charm {
     this.size = 44,
     this.mass = 12,
     this.hang = const Offset(0.5, 0),
+    this.openArt,
   });
 
   /// Size limits keep every charm inside the charm window's swing room.
@@ -43,6 +44,12 @@ class Charm {
   /// its centre.
   final Offset hang;
 
+  /// A locket's inside, `user:<file>.png`: tap the charm and it turns over
+  /// to show this. The `art` is then its closed cover.
+  final String? openArt;
+
+  bool get isLocket => openArt != null;
+
   bool get isBuiltIn => art.startsWith('builtin:');
 
   /// Made by the user: `user:<file>.png` (or .gif, .webp), a file in their charms folder.
@@ -65,6 +72,7 @@ class Charm {
         'size': size,
         'mass': mass,
         'hang': [hang.dx, hang.dy],
+        if (openArt != null) 'openArt': openArt,
       };
 
   /// The polished bead the app has always had, drawn in code.
@@ -104,6 +112,14 @@ class Charm {
     }
 
     final description = json['description'];
+    // Only a user's own charm can be a locket, and only with a bare file
+    // name in their charms folder.
+    final open = json['openArt'];
+    final openArt = art.startsWith(userArtPrefix) &&
+            open is String &&
+            _userArt.hasMatch(open)
+        ? open
+        : null;
     return Charm(
       id: id,
       name: name,
@@ -112,6 +128,7 @@ class Charm {
       size: number('size', 44, minSize, maxSize),
       mass: number('mass', 12, minMass, maxMass),
       hang: hang,
+      openArt: openArt,
     );
   }
 

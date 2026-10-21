@@ -31,7 +31,14 @@ class CharmSprite {
 
   ui.Image get image => frames.first;
 
-  bool get isAnimated => frames.length > 1;
+  /// Plays by itself: a GIF or animated WebP.
+  bool get isAnimated => delays.isNotEmpty && frames.length > 1;
+
+  /// Turns over when tapped: frame 0 is the cover, frame 1 the inside.
+  bool get isLocket => charm.isLocket && frames.length == 2 && delays.isEmpty;
+
+  /// The inside of a locket (the cover for any other charm).
+  ui.Image get openImage => isLocket ? frames[1] : image;
 
   /// Frames kept from an animation. Longer ones are cut here, so a huge
   /// file can't fill the memory.
@@ -162,6 +169,39 @@ class CharmSprite {
     } else {
       final data = await bundle.load('assets/charms/${charm.art}');
       bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }
+
+    if (charm.isUser && charm.isLocket) {
+      final openBytes = await (userCharms ?? UserCharms.standard())
+          .openFileFor(charm)
+          .readAsBytes();
+      final images = <ui.Image>[];
+      Size? art;
+      for (final data in [bytes, openBytes]) {
+        final codec = await ui.instantiateImageCodec(data,
+            targetWidth: (charm.size * dpr * 2).ceil());
+        try {
+          final source = (await codec.getNextFrame()).image;
+          try {
+            final size = art ??=
+                Size(charm.size, charm.size * source.height / source.width);
+            images.add(_renderImage(dpr, size, (canvas) {
+              canvas.drawImageRect(
+                source,
+                Rect.fromLTWH(
+                    0, 0, source.width.toDouble(), source.height.toDouble()),
+                Offset.zero & size,
+                Paint()..filterQuality = FilterQuality.medium,
+              );
+            }));
+          } finally {
+            source.dispose();
+          }
+        } finally {
+          codec.dispose();
+        }
+      }
+      return CharmSprite._(charm, dpr, images, art!);
     }
 
     if (charm.art.toLowerCase().endsWith('.svg')) {

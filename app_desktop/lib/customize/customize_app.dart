@@ -92,7 +92,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
       () => _catalog = widget.catalog.withUserCharms(_userCharms.load()));
 
   /// Pick a photo, design the charm, save it, and hang it.
-  Future<void> _newFromPhoto() async {
+  Future<void> _newFromPhoto({bool locket = false}) async {
     final path = await widget.channel.pickImage();
     if (path == null || !mounted) return;
     final photo = await loadPhoto(path);
@@ -105,7 +105,8 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
     }
     final charm = await Navigator.of(context).push<Charm>(MaterialPageRoute(
         builder: (_) =>
-            PhotoCharmEditor(photo: photo, userCharms: _userCharms)));
+            PhotoCharmEditor(
+                photo: photo, userCharms: _userCharms, locket: locket)));
     photo.dispose();
     if (charm == null || !mounted) return;
     _refreshCatalog();
@@ -266,6 +267,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                           channel: channel,
                           onNewFromPhoto: _newFromPhoto,
                           onNewAnimated: _newAnimated,
+                          onNewLocket: () => _newFromPhoto(locket: true),
                           onNewFromName: _newFromName,
                           onDesign: _designYourOwn,
                           onDelete: _delete),
@@ -405,6 +407,7 @@ class _LibraryPage extends StatelessWidget {
     required this.channel,
     required this.onNewFromPhoto,
     required this.onNewAnimated,
+    required this.onNewLocket,
     required this.onNewFromName,
     required this.onDesign,
     required this.onDelete,
@@ -415,6 +418,7 @@ class _LibraryPage extends StatelessWidget {
   final CustomizeChannel channel;
   final VoidCallback onNewFromPhoto;
   final VoidCallback onNewAnimated;
+  final VoidCallback onNewLocket;
   final VoidCallback onNewFromName;
   final VoidCallback onDesign;
   final ValueChanged<Charm> onDelete;
@@ -480,6 +484,12 @@ class _LibraryPage extends StatelessWidget {
               title: 'New from a name',
               caption: 'A name or word, in English, Hindi, Tamil or Malayalam.',
               onTap: onNewFromName,
+            ),
+            _NewCharmCard(
+              icon: Icons.favorite_border,
+              title: 'New locket',
+              caption: 'Tap it and it opens to show a photo.',
+              onTap: onNewLocket,
             ),
             _NewCharmCard(
               icon: Icons.animation,

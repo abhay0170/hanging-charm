@@ -63,6 +63,16 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   Cost: a charm that is asleep costs about 1% of one core; a 10 frames a
   second animation adds about 5–6% (Flutter's per-frame cost), so laptop
   users may prefer short or slow animations. Lottie is not supported yet.
+- **Lockets** (My charms → New locket): a photo charm with a cover. It
+  hangs closed as an engraved piece of metal (an initial, up to three
+  letters in any supported script, or a sparkle) with a hinge and clasp.
+  Tap it (a press under 0.5 s that moves under 6 px, so dragging still
+  swings it) and it turns over about its vertical axis in about a quarter of
+  a second to show the photo inside; tap again to close it. It closes by
+  itself after 8 seconds, so a photo is never left on your screen. The
+  cover and the inside are saved as two PNGs (`<id>.png` and
+  `<id>_open.png`, listed as `openArt` in `my_charms.json`); deleting the
+  charm deletes both, and an entry whose inside is missing is left out.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -201,6 +211,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Animated charm on screen (12-frame GIF star): pulses and turns between frames while hanging; CPU 6.6% of one core at 10 fps animating, 1.1% with Animate charms off; memory 144 MB | ✅ |
 | Animated charm tests: gif/webp accepted (path tricks and other types refused), frame timing (0 ms → 100 ms), frame chosen at each time and looping, time to next frame, file type kept on save and delete (5) · Settings tests cover the new switch | ✅ |
 | "New animated" in Customize (file picker, 'doesn't move' and 'over 8 MB' messages) | Written and analyzed, not clicked through |
+| Locket on screen (heart, gold chain): tap turns it edge-on then shows the photo; it closes by itself after about 8 s. Covers checked for heart, circle, oval and rounded square with Latin and Malayalam engraving and none | ✅ |
+| Locket tests: engraving cut by visible letters, every shape × engraving draws, `openArt` accepted only for user files (path tricks refused), saved and deleted with its inside, sprite holds cover and inside and doesn't play (5) | ✅ |
+| "New locket" in Customize (file picker, Cover/Inside preview, engraving field) | Written and analyzed, not clicked through |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

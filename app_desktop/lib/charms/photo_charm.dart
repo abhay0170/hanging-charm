@@ -85,6 +85,12 @@ class PhotoCharmDesign {
   /// The ring goes through the top of the bail.
   Offset get hang => const Offset(0.5, 0);
 
+  /// The frame's outer edge, in art-box units.
+  Rect get frameRect => _frameRect;
+
+  /// The frame's outline inside [r].
+  Path outline(Rect r) => _framePath(r);
+
   Rect get _frameRect => Rect.fromLTRB(
       _margin, _bail, artBox.width - _margin, artBox.height - _margin);
 
