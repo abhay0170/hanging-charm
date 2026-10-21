@@ -25,7 +25,8 @@ class CharmPainter extends CustomPainter {
   CharmPainter(this.sim, this.sprite,
       {required Listenable super.repaint,
       this.animate = true,
-      this.locketOpen = _closed});
+      this.locketOpen = _closed,
+      this.extras = const []});
 
   static double _closed() => 0;
 
@@ -37,6 +38,10 @@ class CharmPainter extends CustomPainter {
 
   /// How far a locket has turned over: 0 shows its cover, 1 its inside.
   final double Function() locketOpen;
+
+  /// The extra charms hung from the same ring, in the order the simulation
+  /// has them.
+  final List<CharmSprite> extras;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -88,7 +93,9 @@ class CharmPainter extends CustomPainter {
         _paintThread(canvas, points);
     }
     _paintAnchor(canvas, points.first);
-    _paintCharm(canvas, center);
+    final up = _upFromCharm(sim);
+    _paintExtras(canvas, center + up * (sprite.hangOffset.distance + ringRadius));
+    _paintCharm(canvas, sprite, center, up);
   }
 
   Path _smoothPath(List<Offset> p) {
@@ -266,8 +273,10 @@ class CharmPainter extends CustomPainter {
         pin.deflate(1.5), Paint()..color = const Color(0xFF55555E));
   }
 
-  void _paintCharm(Canvas canvas, Offset center) {
-    final up = _upFromCharm(sim);
+  /// Draws [sprite] at [center], turned so its hang point faces along [up].
+  /// Only the main charm can be a turning locket.
+  void _paintCharm(Canvas canvas, CharmSprite sprite, Offset center, Offset up,
+      {bool main = true}) {
     final hang = sprite.hangOffset;
 
     // Jump ring just above the hang point. Drawn first, so a charm hung
@@ -289,7 +298,7 @@ class CharmPainter extends CustomPainter {
     // A locket turns over about its vertical axis: its cover narrows to an
     // edge, then its inside widens out.
     var across = 1.0;
-    if (sprite.isLocket) {
+    if (main && sprite.isLocket) {
       final open = locketOpen();
       image = open < 0.5 ? sprite.image : sprite.openImage;
       across = math.max(0.02, (open < 0.5 ? 1 - 2 * open : 2 * open - 1));
@@ -310,9 +319,33 @@ class CharmPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// Each extra charm on its cord from the ring the main charm hangs from.
+  void _paintExtras(Canvas canvas, Offset ring) {
+    final count = math.min(extras.length, sim.extraCount);
+    for (var k = 0; k < count; k++) {
+      final s = extras[k];
+      final center = Offset(sim.extraX(k), sim.extraY(k));
+      final toRing = ring - center;
+      final distance = toRing.distance;
+      if (distance < 1e-6) continue;
+      final up = toRing / distance;
+      final hangRing = center + up * (s.hangOffset.distance + ringRadius);
+      canvas.drawLine(
+        ring,
+        hangRing,
+        Paint()
+          ..strokeWidth = 1.4
+          ..strokeCap = StrokeCap.round
+          ..color = const Color(0xFFC8962E),
+      );
+      _paintCharm(canvas, s, center, up, main: false);
+    }
+  }
+
   @override
   bool shouldRepaint(CharmPainter oldDelegate) =>
       oldDelegate.sim != sim ||
       oldDelegate.sprite != sprite ||
-      oldDelegate.animate != animate;
+      oldDelegate.animate != animate ||
+      !listEquals(oldDelegate.extras, extras);
 }

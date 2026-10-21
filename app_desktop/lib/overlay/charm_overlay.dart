@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:charm_physics/charm_physics.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -54,7 +55,6 @@ class _CharmOverlayState extends State<CharmOverlay> {
   /// speed, so a gentle pass gives a gentle swing.
   static const double _brushSpeed = 250;
   static const double _brushShare = 0.5;
-  double get _brushRadius => _hitRadius + 2;
 
   /// How far from its centre the current charm can be grabbed.
   double get _hitRadius => _sprite?.hitRadius ?? 22;
@@ -72,6 +72,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     onVisibility: (visible) {
       _onScreen = visible;
       _animate();
+      _applyBreeze();
     },
   );
 
@@ -131,6 +132,12 @@ class _CharmOverlayState extends State<CharmOverlay> {
       _lastChimeAt = const Duration(seconds: -10);
       _chime(800); // So you hear how loud it is.
     }
+    if (old?.breeze != next.breeze) _applyBreeze();
+    if (old == null
+        ? next.extraCharmIds.isNotEmpty
+        : !listEquals(old.extraCharmIds, next.extraCharmIds)) {
+      _showExtras(next.extraCharmIds);
+    }
     if (old?.reactToWiggle != next.reactToWiggle) {
       _wiggle = WiggleDetector();
       _channel.setCursorStream(next.reactToWiggle && !_power.reduceMotion);
@@ -180,6 +187,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _resetLocket();
     setState(() => _sprite = sprite);
     _sim?.charmMass = charm.mass;
+    if (_extraSprites.isNotEmpty) _applyExtras();
     _wake();
     _animate();
   }
@@ -195,14 +203,13 @@ class _CharmOverlayState extends State<CharmOverlay> {
   Duration _lastChimeAt = const Duration(seconds: -10);
   final _chimeRandom = math.Random();
 
-  void _chime(double speed) {
+  void _chime(double speed, {double? mass}) {
     final volume = _settings.value.soundVolume;
     if (volume <= 0) return;
     final now = _clock.elapsed;
     if (now - _lastChimeAt < _chimeGap) return;
     _lastChimeAt = now;
-    final mass = _sprite?.charm.mass ?? 12;
-    final note = Chime.pitch(mass, _chimeRandom.nextInt(Chime.notes.length));
+    final note = Chime.pitch(mass ?? _sprite?.charm.mass ?? 12, _chimeRandom.nextInt(Chime.notes.length));
     _channel
         .playSound(Chime.wav(note, volume * Chime.strength(speed)))
         .then((played) {
@@ -211,6 +218,85 @@ class _CharmOverlayState extends State<CharmOverlay> {
             StackTrace.current);
       }
     });
+  }
+
+  // ---- More charms on the rope ----
+  //
+  // Up to four more charms hang from the same ring on short cords of
+  // different lengths. They knock together (and chime) and swing apart
+  // again, and any of them can be picked up and carried.
+
+  List<CharmSprite> _extraSprites = const [];
+  List<String> _extraIds = const [];
+  bool _extrasPending = false;
+
+  Future<void> _showExtras(List<String> ids) async {
+    _extraIds = ids;
+    final dpr = _dpr;
+    if (dpr == null) return; // Before the first build; build asks again.
+    final sprites = await Future.wait([
+      for (final id in ids) CharmSprite.load(_charmFor(id), dpr),
+    ]);
+    if (!mounted || _extraIds != ids) return;
+    setState(() => _extraSprites = sprites);
+    _applyExtras();
+    _wake();
+    _animate();
+  }
+
+  /// Gives the simulation the extras' weights, sizes and cord lengths.
+  void _applyExtras() {
+    final sim = _sim;
+    if (sim == null) {
+      _extrasPending = true;
+      return;
+    }
+    final main = _sprite;
+    sim.setExtras(
+      [
+        for (var k = 0; k < _extraSprites.length; k++)
+          ExtraCharm(
+            mass: _extraSprites[k].charm.mass,
+            // A little smaller than the artwork, so corners may overlap.
+            radius: _extraSprites[k].hitRadius * 0.85,
+            reach: ringRadius +
+                _extraSprites[k].hangOffset.distance +
+                6 +
+                26.0 * k,
+          ),
+      ],
+      primaryRadius: _hitRadius * 0.85,
+      primaryHangDistance: (main?.hangOffset.distance ?? 22) + ringRadius,
+    );
+  }
+
+  // ---- Breeze ----
+  //
+  // A slow breeze from the local clock (no weather, no internet, no
+  // location) sways the rope both ways, at most about 10 degrees at full
+  // strength. Off until chosen, and still while saving power, with Windows
+  // animations off, or while the charm is hidden.
+
+  static const double _breezeDegrees = 10;
+  static const Duration _breezeDelay = Duration(milliseconds: 50);
+
+  bool get _breezeOn =>
+      _settings.value.breeze > 0 &&
+      !_saving &&
+      !_power.reduceMotion &&
+      _onScreen;
+
+  void _syncBreeze(RopeSim sim) {
+    final angle =
+        _breezeOn ? _settings.value.breeze * _breezeDegrees * math.pi / 180 : 0.0;
+    sim.windAngle = angle;
+  }
+
+  void _applyBreeze() {
+    final sim = _sim;
+    if (sim == null) return;
+    _syncBreeze(sim);
+    if (sim.windAngle > 0) _wake();
   }
 
   // ---- Power and motion ----
@@ -250,6 +336,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void _applyMotion((bool saving, bool reduceMotion) before) {
     if (before == (_saving, _power.reduceMotion)) return;
     _animate();
+    _applyBreeze();
     _channel.setCursorStream(
         _settings.value.reactToWiggle && !_power.reduceMotion);
     setState(() {});
@@ -288,6 +375,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   static const Duration _locketStaysOpen = Duration(seconds: 8);
 
   Offset _downAt = Offset.zero;
+  int _dragCharm = 0;
   Duration _downTime = Duration.zero;
   double _travel = 0;
 
@@ -352,16 +440,16 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void _animate() {
     _animationTimer?.cancel();
     _animationTimer = null;
-    final sprite = _sprite;
-    if (sprite == null ||
-        !sprite.isAnimated ||
-        !_onScreen ||
-        !_playAnimations ||
-        !mounted) {
-      return;
+    if (!_onScreen || !_playAnimations || !mounted) return;
+    // Wake for whichever animated charm changes frame first.
+    Duration? soonest;
+    for (final s in [?_sprite, ..._extraSprites]) {
+      if (!s.isAnimated) continue;
+      final next = s.untilNextFrame(CharmSprite.clock.elapsed);
+      if (soonest == null || next < soonest) soonest = next;
     }
-    _animationTimer =
-        Timer(sprite.untilNextFrame(CharmSprite.clock.elapsed), () {
+    if (soonest == null) return;
+    _animationTimer = Timer(soonest, () {
       _repaint.value++;
       _animate();
     });
@@ -580,6 +668,12 @@ class _CharmOverlayState extends State<CharmOverlay> {
     final now = _clock.elapsed;
     sim.step((now - _lastStep).inMicroseconds / 1e6);
     _lastStep = now;
+    for (final knock in sim.takeCollisions()) {
+      _chime(knock.speed,
+          mass: knock.b <= _extraSprites.length
+              ? _extraSprites[knock.b - 1].charm.mass
+              : null);
+    }
     _repaint.value++;
     _syncHitRects();
 
@@ -594,7 +688,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (!_saving && now - _lastBrisk < _gentleAfter || handled) {
       _scheduleFrame();
     } else {
-      _gentleTimer = Timer(_gentleDelay, () {
+      final calmBreeze = sim.windAngle > 0 && sim.charmSpeed < 90;
+      _gentleTimer = Timer(calmBreeze ? _breezeDelay : _gentleDelay, () {
         _gentleTimer = null;
         _scheduleFrame();
       });
@@ -615,12 +710,43 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   // ---- Hit testing ----
 
-  Rect? _charmRect() {
-    final sim = _sim;
-    if (sim == null) return null;
-    return Rect.fromCircle(
-        center: charmCenter(sim), radius: _hitRadius + _hitSlop);
+  /// How many charms hang on the rope: the main one, then the extras.
+  int get _charmCount =>
+      1 + math.min(_sim?.extraCount ?? 0, _extraSprites.length);
+
+  Offset _centerOf(int i) {
+    final sim = _sim!;
+    return i == 0
+        ? charmCenter(sim)
+        : Offset(sim.extraX(i - 1), sim.extraY(i - 1));
   }
+
+  double _radiusOf(int i) =>
+      i == 0 ? _hitRadius : _extraSprites[i - 1].hitRadius;
+
+  /// The charm under [p] (0 is the main one), or -1. When several are close,
+  /// the one [p] is deepest inside.
+  int _charmAt(Offset p) {
+    if (_sim == null) return -1;
+    var best = -1;
+    var bestFit = double.infinity;
+    for (var i = 0; i < _charmCount; i++) {
+      final reach = _radiusOf(i) + _hitSlop;
+      final fit = (p - _centerOf(i)).distance / reach;
+      if (fit <= 1 && fit < bestFit) {
+        best = i;
+        bestFit = fit;
+      }
+    }
+    return best;
+  }
+
+  List<Rect> _charmRects() => [
+        if (_sim != null)
+          for (var i = 0; i < _charmCount; i++)
+            Rect.fromCircle(
+                center: _centerOf(i), radius: _radiusOf(i) + _hitSlop),
+      ];
 
   Rect? _anchorRect() {
     final sim = _sim;
@@ -629,18 +755,14 @@ class _CharmOverlayState extends State<CharmOverlay> {
         center: Offset(sim.anchorX, sim.anchorY + 3), radius: _anchorHitRadius);
   }
 
-  bool _hitsCharm(Offset p) {
-    final sim = _sim;
-    if (sim == null) return false;
-    return (p - charmCenter(sim)).distance <= _hitRadius + _hitSlop;
-  }
+  bool _hitsCharm(Offset p) => _charmAt(p) >= 0;
 
   bool _hitsAnchor(Offset p) => _anchorRect()?.contains(p) ?? false;
 
   /// Tells the native window which areas take clicks.
   void _syncHitRects() {
     _channel.setHitRects([
-      ?_charmRect(),
+      ..._charmRects(),
       ?_anchorRect(),
       ?_menuRect,
     ]);
@@ -662,17 +784,25 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (last == null || seconds <= 0 || seconds > 0.1) return;
     if (_drag != _Drag.none || _menuRect != null) return;
     if (now.difference(_lastBrush) < const Duration(milliseconds: 200)) return;
-    if (_distanceToSegment(charmCenter(sim), last, cursor) > _brushRadius) {
-      return;
+    var struck = -1;
+    var closest = double.infinity;
+    for (var i = 0; i < _charmCount; i++) {
+      final gap = _distanceToSegment(_centerOf(i), last, cursor);
+      if (gap <= _radiusOf(i) + 2 && gap < closest) {
+        struck = i;
+        closest = gap;
+      }
     }
+    if (struck < 0) return;
 
     final velocity = (cursor - last) / seconds;
     if (velocity.distance < _brushSpeed) return;
     final push = velocity * _brushShare;
     // The charm hangs from above, so a sideways knock moves it far more than
     // an up or down one.
-    sim.nudge(push.dx, push.dy * 0.3);
-    _chime(velocity.distance);
+    sim.nudge(push.dx, push.dy * 0.3, charm: struck);
+    _chime(velocity.distance,
+        mass: struck == 0 ? null : _extraSprites[struck - 1].charm.mass);
     _lastBrush = now;
     _wake();
   }
@@ -703,10 +833,13 @@ class _CharmOverlayState extends State<CharmOverlay> {
     }
     if (e.buttons != kPrimaryMouseButton) return;
 
-    if (_hitsCharm(p)) {
+    final hit = _charmAt(p);
+    if (hit >= 0) {
       _drag = _Drag.charm;
-      _grabOffset = Offset(sim.charmX, sim.charmY) - p;
-      sim.grab(sim.charmX, sim.charmY);
+      _dragCharm = hit;
+      final held = _centerOf(hit);
+      _grabOffset = held - p;
+      sim.grab(held.dx, held.dy, charm: hit);
       _channel.holdInteractive(true);
       _wake();
     } else if (_hitsAnchor(p)) {
@@ -736,9 +869,13 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (_drag == _Drag.none) return;
     if (_drag == _Drag.charm) {
       _sim?.release();
-      if ((_sim?.charmSpeed ?? 0) > 150) _chime(_sim!.charmSpeed);
-      // A quick press that hardly moved is a tap.
-      if (e is PointerUpEvent &&
+      if (_dragCharm == 0 && (_sim?.charmSpeed ?? 0) > 150) {
+        _chime(_sim!.charmSpeed);
+      }
+      // A quick press that hardly moved is a tap (on the main charm: a
+      // locket opens).
+      if (_dragCharm == 0 &&
+          e is PointerUpEvent &&
           _travel < 6 &&
           _clock.elapsed - _downTime < const Duration(milliseconds: 500)) {
         _toggleLocket();
@@ -822,11 +959,17 @@ class _CharmOverlayState extends State<CharmOverlay> {
       _dpr = dpr;
       _sprite ??= CharmSprite.goldBead(dpr);
       _showCharm(_settings.value.charmId);
+      _showExtras(_settings.value.extraCharmIds);
     }
     final sprite = _sprite!;
     return LayoutBuilder(builder: (context, constraints) {
       _size = constraints.biggest;
       final sim = _simFor(_size);
+      if (_extrasPending) {
+        _extrasPending = false;
+        _applyExtras();
+      }
+      _syncBreeze(sim);
       if (_wakeWhenReady || (!_running && !sim.asleep)) {
         _wakeWhenReady = false;
         _wake();
@@ -845,6 +988,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
                   painter: CharmPainter(sim, sprite,
                       repaint: _repaint,
                       animate: _playAnimations,
+                      extras: _extraSprites,
                       locketOpen: () => _locketProgress),
                 ),
               ),

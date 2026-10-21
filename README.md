@@ -107,6 +107,26 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   rings an octave lower, and there is at most one every quarter of a second.
   It plays through Windows' own `PlaySound` from memory, with no audio
   library. Each sound is 1.1 s, 44 KB, made when needed.
+- **Several charms on one rope** (Library → "On your rope", and the + on any
+  charm card): your main charm plus up to four more, all hung from the same
+  ring on short cords of different lengths. They start fanned out to either
+  side, swing apart and together, knock (and chime, if the chime is on) with
+  a sound by the lighter charm's weight, and each can be picked up and
+  carried; let go and it swings back. The main charm carries the ring and is
+  not pushed around by the extras, so its swing is unchanged. Extra charms
+  are shown as they are (a locket stays closed, a GIF plays); only the main
+  charm's locket opens on a tap. The window is taller (340 instead of 240
+  logical pixels) to leave room. A knock is reported once, when two charms
+  meet, so charms resting against each other stay quiet.
+- **Breeze** (Settings → Breeze: off, light, breezy, windy; off by default):
+  a slow wind from the clock: three gentle waves (0.13, 0.21 and 0.34 Hz,
+  well under the rope's own 0.8 Hz, so they never build up) push the rope
+  both ways, never past about 1.5 times the strength set (10° at windy; 3°,
+  6° and 10° for light, breezy and windy; tested on all nine ropes). It uses
+  no weather service, no internet and no location. It pauses while saving
+  power, with Windows animations off, and while the charm is hidden. It
+  keeps the charm moving, so it costs about 5–7% of one core more than a
+  charm at rest (3% idle → 8–10% measured), at about 20 frames a second.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -255,6 +275,11 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Reduce Motion (animations off, instant locket flip, wiggle ignored) | Written, not tested: Windows' setting was on here and I didn't change it |
 | Chime on screen: sweeping the cursor over the charm made one chime; Windows' `PlaySound` accepted it (returned true). I can't hear it from here, so how it sounds is for your ears | ✅ played · 🔊 untested by ear |
 | Chime tests: valid 16-bit mono WAV of the right length, peak follows volume and never clips, starts and ends without a click, rings at the pitch asked for, strength by speed, heavy charms an octave lower (6) · Settings tests cover the volume | ✅ |
+| Cluster on screen (bead + star, heart, clover, coin on a gold chain): charms hang fanned on their cords; dragging the coin carries it with the hand and it swings back when let go | ✅ |
+| Breeze on screen / CPU: idle 3%, with breeze 8–10%; with the saver forced on, 3% again | ✅ |
+| Physics tests (15 new, 82 in all): breeze sways both ways within 1.5× its angle on every rope, stronger = wider, stops and sleeps when off, never adds to a thrown swing, bad values safe · extras settle apart and asleep, stay on their cords through throws on every rope, knocks reported once and not for a gentle sway, an extra can be carried, rope never stretches, 40 random grabs stay finite, extras sway in a breeze, removing them restores the plain charm | ✅ |
+| Settings tests: extra charms kept in order, at most four, strings only; breeze clamped (2) | ✅ |
+| Library "On your rope" strip, the + buttons and the Breeze slider | Written and analyzed; not clicked through (settings changes were tested through the settings file) |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

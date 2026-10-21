@@ -24,6 +24,8 @@ void main() {
     expect(store.value.reactToWiggle, isFalse);
     expect(store.value.savePower, isTrue);
     expect(store.value.soundVolume, 0);
+    expect(store.value.breeze, 0);
+    expect(store.value.extraCharmIds, isEmpty);
   });
 
   test('saves and reads back every setting', () async {
@@ -37,6 +39,8 @@ void main() {
           reactToWiggle: true,
           savePower: false,
           soundVolume: 0.6,
+          breeze: 0.66,
+          extraCharmIds: ['star', 'heart'],
           windowAnchorFraction: 0.31,
           screenAnchorFraction: 0.9,
         ));
@@ -49,6 +53,8 @@ void main() {
     expect(again.value.reactToWiggle, isTrue);
     expect(again.value.savePower, isFalse);
     expect(again.value.soundVolume, 0.6);
+    expect(again.value.breeze, 0.66);
+    expect(again.value.extraCharmIds, ['star', 'heart']);
   });
 
   test('a burst of changes becomes one write after a pause', () async {
@@ -94,5 +100,27 @@ void main() {
     store.update((s) => s.copyWith(followWindow: false));
     expect(calls, 1);
     store.dispose();
+  });
+
+  test('extra charms are kept in order, at most four, strings only', () {
+    final s = AppSettings.fromJson({
+      'extraCharms': ['a', 7, '', 'b', null, 'c', 'd', 'e', 'f'],
+    });
+    expect(s.extraCharmIds, ['a', 'b', 'c', 'd']);
+    expect(AppSettings.fromJson({'extraCharms': 'nope'}).extraCharmIds,
+        isEmpty);
+    expect(const AppSettings().copyWith(extraCharmIds: ['1', '2', '3', '4', '5'])
+        .extraCharmIds, hasLength(4));
+    expect(AppSettings.fromJson({'extraCharms': ['a']}),
+        AppSettings.fromJson({'extraCharms': ['a']}));
+    expect(AppSettings.fromJson({'extraCharms': ['a']}),
+        isNot(AppSettings.fromJson({'extraCharms': ['b']})));
+  });
+
+  test('breeze is a fraction and starts off', () {
+    expect(const AppSettings().breeze, 0);
+    expect(AppSettings.fromJson({'breeze': 5}).breeze, 1);
+    expect(AppSettings.fromJson({'breeze': -2}).breeze, 0);
+    expect(AppSettings.fromJson({'breeze': 'x'}).breeze, 0);
   });
 }

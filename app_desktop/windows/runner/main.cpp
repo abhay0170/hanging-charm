@@ -34,7 +34,7 @@ int RunCharm(flutter::DartProject project) {
   // The bead's centre is at most one rope length (180) from the anchor and
   // its image reaches 34 further, so 214 each way covers every swing.
   constexpr double kWindowWidth = 460;
-  constexpr double kWindowHeight = 240;
+  constexpr double kWindowHeight = 340;
   constexpr double kAnchorAt = 0.72;  // fraction of the screen width
   HMONITOR monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
   MONITORINFO monitor_info = {sizeof(monitor_info)};

@@ -452,22 +452,86 @@ class _LibraryPage extends StatelessWidget {
           ],
         );
 
-    Widget card(Charm charm) => _ChoiceCard(
-          picture: Padding(
-            padding: const EdgeInsets.all(18),
-            child: CharmArt(charm: charm),
-          ),
-          title: charm.name,
-          caption: charm.description,
-          selected: charm.id == chosen,
-          onTap: () => channel.update({'charm': charm.id}),
+    final roomOnRope = settings.extraCharmIds.length < AppSettings.maxExtras;
+
+    Widget card(Charm charm) => Stack(
+          children: [
+            _ChoiceCard(
+              picture: Padding(
+                padding: const EdgeInsets.all(18),
+                child: CharmArt(charm: charm),
+              ),
+              title: charm.name,
+              caption: charm.description,
+              selected: charm.id == chosen,
+              onTap: () => channel.update({'charm': charm.id}),
+            ),
+            Positioned(
+              top: 6,
+              left: 6,
+              child: IconButton(
+                tooltip: roomOnRope
+                    ? 'Also hang it on the rope'
+                    : 'The rope is full (${AppSettings.maxExtras} extra)',
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                visualDensity: VisualDensity.compact,
+                onPressed: roomOnRope
+                    ? () => channel.update({
+                          'extraCharms': [...settings.extraCharmIds, charm.id],
+                        })
+                    : null,
+              ),
+            ),
+          ],
         );
+
+    Widget onRope() {
+      final main = catalog.charmFor(settings.charmId);
+      Widget art(Charm c) => SizedBox(width: 28, height: 28, child: CharmArt(charm: c));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionTitle('On your rope'),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+                'Your main charm, and up to ${AppSettings.maxExtras} more '
+                'hanging from the same ring. They swing, knock together and '
+                'can each be picked up. Press + on a charm below to add it.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant)),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(avatar: art(main), label: Text('${main.name} (main)')),
+              for (var i = 0; i < settings.extraCharmIds.length; i++)
+                InputChip(
+                  avatar: art(catalog.charmFor(settings.extraCharmIds[i])),
+                  label: Text(catalog.charmFor(settings.extraCharmIds[i]).name),
+                  onDeleted: () => channel.update({
+                    'extraCharms': [
+                      for (var j = 0; j < settings.extraCharmIds.length; j++)
+                        if (j != i) settings.extraCharmIds[j],
+                    ],
+                  }),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      );
+    }
 
     return _Page(
       title: 'Library',
       subtitle: 'The charm that hangs on your screen. '
           '${catalog.all.length} to choose from.',
       children: [
+        if (settings.extraCharmIds.isNotEmpty) onRope(),
         section(
           'My charms',
           'Made by you, from your photos and words. They stay on this '
@@ -705,6 +769,8 @@ class _SettingsPageState extends State<_SettingsPage> {
   /// The chime volume while the slider is being dragged; the setting itself
   /// changes when it is let go (and the charm rings once at that volume).
   double? _draggedVolume;
+  double? _draggedBreeze;
+  static const _breezeNames = ['off', 'light', 'breezy', 'windy'];
 
   @override
   void initState() {
@@ -801,6 +867,24 @@ class _SettingsPageState extends State<_SettingsPage> {
           onChangeEnd: (v) {
             setState(() => _draggedVolume = null);
             widget.channel.update({'soundVolume': v});
+          },
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+              'Breeze: ${_breezeNames[((_draggedBreeze ?? widget.settings.breeze) * 3).round()]}'),
+          subtitle: const Text('A gentle breeze sways the charm now and then. '
+              'It is made on this computer: no weather, no internet, no '
+              'location. Off until you choose. It keeps the charm moving, so '
+              'it uses a little power (and pauses on battery).'),
+        ),
+        Slider(
+          value: _draggedBreeze ?? widget.settings.breeze,
+          divisions: 3,
+          onChanged: (v) => setState(() => _draggedBreeze = v),
+          onChangeEnd: (v) {
+            setState(() => _draggedBreeze = null);
+            widget.channel.update({'breeze': v});
           },
         ),
         SwitchListTile(

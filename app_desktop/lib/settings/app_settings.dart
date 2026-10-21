@@ -14,6 +14,8 @@ class AppSettings {
     this.reactToWiggle = false,
     this.savePower = true,
     this.soundVolume = 0,
+    this.breeze = 0,
+    this.extraCharmIds = const [],
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
     this.welcomeCompleted = false,
@@ -55,6 +57,27 @@ class AppSettings {
   /// sound from the desktop should be something you asked for.
   final double soundVolume;
 
+  /// How strong the breeze is, 0 to 1: 0 is none (how it starts), 1 sways the
+  /// rope about 10 degrees at most. It blows on the local clock, not from
+  /// the weather: no internet and no location.
+  final double breeze;
+
+  /// More charms on the same rope, besides [charmId]; at most [maxExtras].
+  final List<String> extraCharmIds;
+
+  static const int maxExtras = 4;
+
+  static List<String> _limited(List<String> ids) =>
+      List.unmodifiable(ids.take(maxExtras));
+
+  static bool _sameIds(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   /// How far along a window's top edge the pin sits, set by dragging it.
   final double windowAnchorFraction;
 
@@ -86,6 +109,8 @@ class AppSettings {
     bool? reactToWiggle,
     bool? savePower,
     double? soundVolume,
+    double? breeze,
+    List<String>? extraCharmIds,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
     bool? welcomeCompleted,
@@ -101,6 +126,8 @@ class AppSettings {
       reactToWiggle: reactToWiggle ?? this.reactToWiggle,
       savePower: savePower ?? this.savePower,
       soundVolume: (soundVolume ?? this.soundVolume).clamp(0.0, 1.0).toDouble(),
+      breeze: (breeze ?? this.breeze).clamp(0.0, 1.0).toDouble(),
+      extraCharmIds: _limited(extraCharmIds ?? this.extraCharmIds),
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
       welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
@@ -119,6 +146,8 @@ class AppSettings {
         'reactToWiggle': reactToWiggle,
         'savePower': savePower,
         'soundVolume': soundVolume,
+        'breeze': breeze,
+        'extraCharms': extraCharmIds,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
         'welcomeCompleted': welcomeCompleted,
@@ -156,6 +185,12 @@ class AppSettings {
       reactToWiggle: read<bool>('reactToWiggle', d.reactToWiggle),
       savePower: read<bool>('savePower', d.savePower),
       soundVolume: fraction('soundVolume', d.soundVolume),
+      breeze: fraction('breeze', d.breeze),
+      extraCharmIds: _limited([
+        if (json['extraCharms'] case final List list)
+          for (final id in list)
+            if (id is String && id.isNotEmpty) id,
+      ]),
       windowAnchorFraction:
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
@@ -178,6 +213,8 @@ class AppSettings {
       other.reactToWiggle == reactToWiggle &&
       other.savePower == savePower &&
       other.soundVolume == soundVolume &&
+      other.breeze == breeze &&
+      _sameIds(other.extraCharmIds, extraCharmIds) &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
       other.welcomeCompleted == welcomeCompleted &&
@@ -194,6 +231,8 @@ class AppSettings {
       reactToWiggle,
       savePower,
       soundVolume,
+      breeze,
+      Object.hashAll(extraCharmIds),
       windowAnchorFraction,
       screenAnchorFraction,
       welcomeCompleted,
