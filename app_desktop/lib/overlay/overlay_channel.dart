@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'power_state.dart';
 
 /// Talks to the native overlay window (windows/runner/flutter_window.cpp).
 ///
@@ -91,10 +92,14 @@ class OverlayChannel {
   /// Hang from the active window (true) or the top of the screen (false).
   Future<void> setFollowActive(bool follow) => _call('setFollowActive', follow);
 
-  /// Shows or hides the charm (a full-screen app hides it regardless).
   /// Starts or stops the stream of cursor positions ([onCursorMoved]).
   Future<void> setCursorStream(bool on) => _call('setCursorStream', on);
 
+  /// Battery and motion settings of the computer.
+  Future<PowerState> getPowerState() async =>
+      PowerState.fromChannel(await _call('getPowerState'));
+
+  /// Shows or hides the charm (a full-screen app hides it regardless).
   Future<void> setCharmVisible(bool visible) =>
       _call('setCharmVisible', visible);
 

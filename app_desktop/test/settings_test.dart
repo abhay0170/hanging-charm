@@ -22,6 +22,7 @@ void main() {
     expect(store.value.charmVisible, isTrue);
     expect(store.value.animateCharms, isTrue);
     expect(store.value.reactToWiggle, isFalse);
+    expect(store.value.savePower, isTrue);
   });
 
   test('saves and reads back every setting', () async {
@@ -33,6 +34,7 @@ void main() {
           charmVisible: false,
           animateCharms: false,
           reactToWiggle: true,
+          savePower: false,
           windowAnchorFraction: 0.31,
           screenAnchorFraction: 0.9,
         ));
@@ -43,6 +45,7 @@ void main() {
     expect(again.value.ropeStyle, RopeStyle.goldChain);
     expect(again.value.animateCharms, isFalse);
     expect(again.value.reactToWiggle, isTrue);
+    expect(again.value.savePower, isFalse);
   });
 
   test('a burst of changes becomes one write after a pause', () async {

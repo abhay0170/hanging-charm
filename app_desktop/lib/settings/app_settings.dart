@@ -12,6 +12,7 @@ class AppSettings {
     this.charmVisible = true,
     this.animateCharms = true,
     this.reactToWiggle = false,
+    this.savePower = true,
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
     this.welcomeCompleted = false,
@@ -45,6 +46,10 @@ class AppSettings {
   /// asked for, since it means watching where the cursor goes.
   final bool reactToWiggle;
 
+  /// Draw fewer frames and pause animated charms while on battery or in
+  /// Windows' Battery Saver.
+  final bool savePower;
+
   /// How far along a window's top edge the pin sits, set by dragging it.
   final double windowAnchorFraction;
 
@@ -74,6 +79,7 @@ class AppSettings {
     bool? charmVisible,
     bool? animateCharms,
     bool? reactToWiggle,
+    bool? savePower,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
     bool? welcomeCompleted,
@@ -87,6 +93,7 @@ class AppSettings {
       charmVisible: charmVisible ?? this.charmVisible,
       animateCharms: animateCharms ?? this.animateCharms,
       reactToWiggle: reactToWiggle ?? this.reactToWiggle,
+      savePower: savePower ?? this.savePower,
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
       welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
@@ -103,6 +110,7 @@ class AppSettings {
         'charmVisible': charmVisible,
         'animateCharms': animateCharms,
         'reactToWiggle': reactToWiggle,
+        'savePower': savePower,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
         'welcomeCompleted': welcomeCompleted,
@@ -138,6 +146,7 @@ class AppSettings {
       charmVisible: read<bool>('charmVisible', d.charmVisible),
       animateCharms: read<bool>('animateCharms', d.animateCharms),
       reactToWiggle: read<bool>('reactToWiggle', d.reactToWiggle),
+      savePower: read<bool>('savePower', d.savePower),
       windowAnchorFraction:
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
@@ -158,6 +167,7 @@ class AppSettings {
       other.charmVisible == charmVisible &&
       other.animateCharms == animateCharms &&
       other.reactToWiggle == reactToWiggle &&
+      other.savePower == savePower &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
       other.welcomeCompleted == welcomeCompleted &&
@@ -172,6 +182,7 @@ class AppSettings {
       charmVisible,
       animateCharms,
       reactToWiggle,
+      savePower,
       windowAnchorFraction,
       screenAnchorFraction,
       welcomeCompleted,

@@ -12,6 +12,7 @@ import '../charms/user_charms.dart';
 import '../customize/protocol.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
+import 'power_state.dart';
 import 'wiggle_detector.dart';
 import '../settings/settings_store.dart';
 import 'charm_painter.dart';
@@ -89,6 +90,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _applied = _settings.value;
     _apply(null, _applied);
     _settings.addListener(_onSettingsChanged);
+    _checkPower();
+    _powerTimer = Timer.periodic(_powerCheckEvery, (_) => _checkPower());
 
     // First launch: show the welcome once. It counts as shown from the
     // moment it opens, so closing it early doesn't bring it back each time.
@@ -122,9 +125,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
     }
     if (old?.reactToWiggle != next.reactToWiggle) {
       _wiggle = WiggleDetector();
-      _channel.setCursorStream(next.reactToWiggle);
+      _channel.setCursorStream(next.reactToWiggle && !_power.reduceMotion);
     }
-    if (old?.animateCharms != next.animateCharms) {
+    if (old?.animateCharms != next.animateCharms ||
+        old?.savePower != next.savePower) {
       _animate();
       setState(() {}); // The painter shows one frame or all of them.
     }
@@ -172,6 +176,48 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _animate();
   }
 
+  // ---- Power and motion ----
+  //
+  // On battery (or in Battery Saver) the charm draws about 30 frames a
+  // second at most, and animated charms hold still. With Windows'
+  // "Show animations" off, animations hold still too, a locket flips at
+  // once, and the mouse wiggle is not listened for. Touching the charm
+  // always works in full: direct manipulation isn't decoration.
+
+  /// Benchmark builds (`--dart-define=FORCE_POWER_SAVER=true`) behave as if
+  /// on battery, so CPU can be measured on a desktop.
+  static const _forceSaver = bool.fromEnvironment('FORCE_POWER_SAVER');
+
+  static const Duration _powerCheckEvery = Duration(seconds: 20);
+
+  PowerState _power = const PowerState();
+  Timer? _powerTimer;
+
+  bool get _saving =>
+      _settings.value.savePower && (_power.lowPower || _forceSaver);
+
+  /// Animated charms play, unless power or motion settings say to hold still.
+  bool get _playAnimations =>
+      _settings.value.animateCharms && !_saving && !_power.reduceMotion;
+
+  Future<void> _checkPower() async {
+    final next = await _channel.getPowerState();
+    if (!mounted || next == _power) return;
+    final before = (_saving, _power.reduceMotion);
+    _power = next;
+    _applyMotion(before);
+  }
+
+  /// Re-applies whatever depends on the power and motion settings, after
+  /// they or the user's own switches changed.
+  void _applyMotion((bool saving, bool reduceMotion) before) {
+    if (before == (_saving, _power.reduceMotion)) return;
+    _animate();
+    _channel.setCursorStream(
+        _settings.value.reactToWiggle && !_power.reduceMotion);
+    setState(() {});
+  }
+
   // ---- Mouse wiggle ----
   //
   // Shake the mouse and the charm gives a small sway, away from the cursor
@@ -186,6 +232,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void _onCursorMoved(Offset cursor) {
     final sim = _sim;
     if (sim == null) return;
+    if (_power.reduceMotion) return;
     final strength = _wiggle.add(_clock.elapsed, cursor.dx);
     if (strength == null) return;
     final away = charmCenter(sim).dx >= cursor.dx ? 1.0 : -1.0;
@@ -219,11 +266,15 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   void _turnLocket(bool open) {
     _locketWantsOpen = open;
+    if (_power.reduceMotion) {
+      _locketProgress = open ? 1 : 0;
+      _repaint.value++;
+    }
     _locketCloser?.cancel();
     _locketCloser = open
         ? Timer(_locketStaysOpen, () => _turnLocket(false))
         : null;
-    if (_locketTimer != null) return;
+    if (_locketTimer != null || _power.reduceMotion) return;
     _locketLast = _clock.elapsed;
     _locketTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
       final now = _clock.elapsed;
@@ -266,7 +317,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (sprite == null ||
         !sprite.isAnimated ||
         !_onScreen ||
-        !_settings.value.animateCharms ||
+        !_playAnimations ||
         !mounted) {
       return;
     }
@@ -368,6 +419,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   void dispose() {
     _settings.removeListener(_onSettingsChanged);
     _gentleTimer?.cancel();
+    _powerTimer?.cancel();
     _animationTimer?.cancel();
     _locketTimer?.cancel();
     _locketCloser?.cancel();
@@ -454,7 +506,16 @@ class _CharmOverlayState extends State<CharmOverlay> {
   int? _frameCallbackId;
   Timer? _gentleTimer;
 
+  /// A wake-up that came before the rope existed (the charm's artwork can
+  /// finish loading before the first layout); it is carried out as soon as
+  /// the rope is made, rather than starting a loop with nothing to run.
+  bool _wakeWhenReady = false;
+
   void _wake() {
+    if (_sim == null) {
+      _wakeWhenReady = true;
+      return;
+    }
     _sim?.wake();
     if (_running) {
       _brisk();
@@ -489,7 +550,9 @@ class _CharmOverlayState extends State<CharmOverlay> {
       return;
     }
     if (handled || sim.charmSpeed > _gentleSpeed) _lastBrisk = now;
-    if (now - _lastBrisk < _gentleAfter) {
+    // Saving power: 30 frames a second from the start, except while the
+    // charm is being handled, which stays smooth.
+    if (!_saving && now - _lastBrisk < _gentleAfter || handled) {
       _scheduleFrame();
     } else {
       _gentleTimer = Timer(_gentleDelay, () {
@@ -723,7 +786,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
     return LayoutBuilder(builder: (context, constraints) {
       _size = constraints.biggest;
       final sim = _simFor(_size);
-      if (!_running && !sim.asleep) _wake();
+      if (_wakeWhenReady || (!_running && !sim.asleep)) {
+        _wakeWhenReady = false;
+        _wake();
+      }
       return Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: _onPointerDown,
@@ -737,7 +803,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
                 child: CustomPaint(
                   painter: CharmPainter(sim, sprite,
                       repaint: _repaint,
-                      animate: _settings.value.animateCharms,
+                      animate: _playAnimations,
                       locketOpen: () => _locketProgress),
                 ),
               ),

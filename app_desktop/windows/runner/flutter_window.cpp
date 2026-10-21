@@ -116,6 +116,16 @@ void FlutterWindow::HandleOverlayCall(
     }
     anchor_tracker_->SetFollowActiveWindow(*follow);
     result->Success();
+  } else if (method == "getPowerState") {
+    // [on battery, Battery Saver on, Windows animations off]
+    SYSTEM_POWER_STATUS power = {};
+    const bool known = GetSystemPowerStatus(&power) != FALSE;
+    BOOL animations = TRUE;
+    SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0);
+    result->Success(flutter::EncodableValue(flutter::EncodableList{
+        flutter::EncodableValue(known && power.ACLineStatus == 0),
+        flutter::EncodableValue(known && (power.SystemStatusFlag & 1) != 0),
+        flutter::EncodableValue(animations == FALSE)}));
   } else if (method == "setCursorStream") {
     const auto* on = std::get_if<bool>(call.arguments());
     if (!on) {

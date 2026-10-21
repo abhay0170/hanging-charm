@@ -783,6 +783,15 @@ class _SettingsPageState extends State<_SettingsPage> {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
+          title: const Text('Save power on battery'),
+          subtitle: const Text('On battery or in Battery Saver, the charm draws '
+              'fewer frames and animated charms hold still. If Windows’ '
+              '“Show animations” is off, animations always hold still.'),
+          value: widget.settings.savePower,
+          onChanged: (v) => widget.channel.update({'savePower': v}),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
           title: const Text('Sway when I shake the mouse'),
           subtitle: const Text('Shake the mouse and the charm gives a small '
               'sway. Off unless you turn it on, because it watches where '

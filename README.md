@@ -84,6 +84,19 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   the switch is on; nothing is kept or sent. A keyboard nudge was left out
   on purpose: noticing keystrokes needs a global keyboard hook, which is
   how key loggers work, and a privacy-first app shouldn't do that.
+- **Save power on battery** (Settings, on by default): when the computer is
+  on battery or in Windows' Battery Saver, the charm draws about 30 frames a
+  second at most from the start (instead of every display refresh until the
+  swing calms), and animated charms hold still. Dragging the charm is always
+  smooth. It asks Windows every 20 seconds, so it follows plugging in and
+  out. Measured on this laptop (on battery, Battery Saver on): an animated
+  charm 5–7% of one core with the setting off, 1–3% on; a thrown swing
+  20–21% off, 12–15% on. The saving is modest for swings (they calm within
+  a couple of seconds anyway) and large for animations.
+- **Reduce Motion**: with Windows' "Show animations" off, animated charms
+  hold still, a locket opens at once instead of turning over, and the mouse
+  wiggle is not listened for. Touching and dragging the charm still works in
+  full.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -227,6 +240,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | "New locket" in Customize (file picker, Cover/Inside preview, engraving field) | Written and analyzed, not clicked through |
 | Mouse wiggle on screen (cursor shaken 400 px below the charm, off the charm): charm sways, ~7 px measured at its centre; a straight sweep of the same distance: 0 px | ✅ |
 | Wiggle tests: shake noticed once, harder = stronger, fast sweep / slow back-and-forth / tremor / strokes spread over seconds ignored, cooldown (7) · physics: strongest wiggle nudge under 9° on all 9 ropes (1) | ✅ |
+| Battery saver on screen (laptop on battery with Battery Saver on): animated charm 5–7% → 1–3%, thrown swing 20–21% → 12–15%; frames confirmed at 30 a second with the saver on | ✅ |
+| Power state tests: native answer read, battery or Battery Saver means low power, odd answers mean plugged in, equality (4) · Settings tests cover the switch | ✅ |
+| Reduce Motion (animations off, instant locket flip, wiggle ignored) | Written, not tested: Windows' setting was on here and I didn't change it |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
