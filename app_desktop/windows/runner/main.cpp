@@ -70,8 +70,8 @@ int RunCustomize(flutter::DartProject project, bool welcome) {
   }
 
   // Centred on the screen the cursor is on.
-  const int kWidth = welcome ? 720 : 860;
-  const int kHeight = welcome ? 580 : 600;
+  const int kWidth = welcome ? 720 : 1000;
+  const int kHeight = welcome ? 580 : 680;
   POINT cursor;
   GetCursorPos(&cursor);
   HMONITOR monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);

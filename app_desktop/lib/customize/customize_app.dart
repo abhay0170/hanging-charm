@@ -14,6 +14,7 @@ import '../settings/app_settings.dart';
 import '../settings/settings_store.dart';
 import 'customize_channel.dart';
 import 'glass.dart';
+import 'library_page.dart';
 import 'animated_charm_editor.dart';
 import 'charm_designer.dart';
 import 'name_charm_editor.dart';
@@ -75,7 +76,7 @@ class _CustomizeHome extends StatefulWidget {
 class _CustomizeHomeState extends State<_CustomizeHome> {
   static const _tabs = [
     (Icons.diamond_outlined, Icons.diamond, 'Library'),
-    (Icons.linear_scale, Icons.linear_scale, 'Ropes & Layout'),
+    (Icons.linear_scale, Icons.linear_scale, 'Ropes & layout'),
     (Icons.settings_outlined, Icons.settings, 'Settings'),
     (Icons.info_outline, Icons.info, 'About'),
   ];
@@ -230,7 +231,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
         child: Scaffold(
           body: Row(
             children: [
-              _GlassSidebar(
+              _Sidebar(
                 tabs: _tabs,
                 selected: _tab,
                 onSelect: (i) => setState(() => _tab = i),
@@ -251,7 +252,7 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                       );
                     }
                     return switch (_tab) {
-                      0 => _LibraryPage(
+                      0 => LibraryPage(
                           settings: settings,
                           catalog: _catalog,
                           festivals: widget.festivals,
@@ -281,9 +282,9 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
   }
 }
 
-/// The tabs, on a pane of glass down the left.
-class _GlassSidebar extends StatelessWidget {
-  const _GlassSidebar({
+/// The tabs, down the left: a name, the pages, and the version.
+class _Sidebar extends StatelessWidget {
+  const _Sidebar({
     required this.tabs,
     required this.selected,
     required this.onSelect,
@@ -295,35 +296,66 @@ class _GlassSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
-      child: SizedBox(
-        width: 176,
-        height: double.infinity,
-        child: GlassCard(
-          radius: 26,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
-          child: Column(
-            children: [
-              for (var i = 0; i < tabs.length; i++) ...[
-                _SideTab(
-                  icon: i == selected ? tabs[i].$2 : tabs[i].$1,
-                  label: tabs[i].$3,
-                  selected: i == selected,
-                  onTap: () => onSelect(i),
+    return Container(
+      width: 208,
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        border: Border(right: BorderSide(color: Glass.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: Alignment(-0.3, -0.4),
+                      colors: [
+                        Color(0xFFFFF3C4),
+                        Color(0xFFE0A93B),
+                        Color(0xFF7A4E0E),
+                      ],
+                      stops: [0, 0.55, 1],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(width: 10),
+                Text(appName,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
               ],
-            ],
+            ),
           ),
-        ),
+          for (var i = 0; i < tabs.length; i++)
+            _NavItem(
+              icon: i == selected ? tabs[i].$2 : tabs[i].$1,
+              label: tabs[i].$3,
+              selected: i == selected,
+              onTap: () => onSelect(i),
+            ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('Version $appVersion',
+                style: TextStyle(fontSize: 12, color: Glass.faint)),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SideTab extends StatelessWidget {
-  const _SideTab({
+class _NavItem extends StatelessWidget {
+  const _NavItem({
     required this.icon,
     required this.label,
     required this.selected,
@@ -337,84 +369,64 @@ class _SideTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Glass.neon.withValues(alpha: 0.14),
-                      Glass.neon.withValues(alpha: 0.05),
-                    ],
-                  )
-                : null,
-            border: Border.all(
-                color: selected ? Glass.neonLine : Colors.transparent),
-            boxShadow: [
-              if (selected)
-                BoxShadow(
-                    color: Glass.neon.withValues(alpha: 0.18), blurRadius: 20),
-            ],
-          ),
-          child: Column(
-            children: [
-              Icon(icon,
-                  size: 26, color: selected ? Glass.neon : Glass.muted),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: selected ? Glass.text : Glass.muted,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(Glass.buttonRadius),
+              hoverColor: Colors.white.withValues(alpha: 0.04),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Glass.buttonRadius),
+                  color: selected ? Glass.neonFill : Colors.transparent,
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon,
+                        size: 18, color: selected ? Glass.neon : Glass.muted),
+                    const SizedBox(width: 12),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: selected ? Glass.text : Glass.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            if (selected)
+              Positioned(
+                left: -12,
+                top: 9,
+                bottom: 9,
+                width: 3,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Glass.neon,
+                    borderRadius: BorderRadius.circular(3),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Glass.neon.withValues(alpha: 0.6),
+                          blurRadius: 8),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-/// A scrolling page with a title, a one-line explanation and sections.
-class _Page extends StatelessWidget {
-  const _Page({
-    required this.title,
-    required this.subtitle,
-    required this.children,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(26, 22, 30, 32),
-      children: [
-        Text(title, style: text.headlineSmall),
-        const SizedBox(height: 4),
-        Text(subtitle,
-            style: text.bodyMedium?.copyWith(
-                color: Glass.muted, fontSize: 16)),
-        const SizedBox(height: 14),
-        ...children,
-      ],
     );
   }
 }
@@ -450,314 +462,37 @@ class _ChoiceCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return SizedBox(
       width: 172,
-      child: GlassCard(
-        radius: 20,
-        glowing: selected,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 150, child: Center(child: picture)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: Text(title, style: text.titleSmall)),
-                    if (selected)
-                      const Icon(Icons.check_circle,
-                          size: 18, color: Glass.neon),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(caption,
-                    style: text.bodySmall?.copyWith(color: Glass.muted)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---- Library ----
-
-class _LibraryPage extends StatelessWidget {
-  const _LibraryPage({
-    required this.settings,
-    required this.catalog,
-    required this.festivals,
-    required this.channel,
-    required this.onNewFromPhoto,
-    required this.onNewAnimated,
-    required this.onNewLocket,
-    required this.onNewFromName,
-    required this.onDesign,
-    required this.onDelete,
-  });
-
-  final AppSettings settings;
-  final CharmCatalog catalog;
-  final FestivalCalendar festivals;
-  final CustomizeChannel channel;
-  final VoidCallback onNewFromPhoto;
-  final VoidCallback onNewAnimated;
-  final VoidCallback onNewLocket;
-  final VoidCallback onNewFromName;
-  final VoidCallback onDesign;
-  final ValueChanged<Charm> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // An unknown saved charm shows as the bead, so mark the bead chosen.
-    final chosen = catalog.charmFor(settings.charmId).id;
-    final mine = [
-      for (final c in catalog.collections)
-        if (c.id == CharmCatalog.userCollectionId) ...c.charms,
-    ];
-
-    Widget section(String name, String description, List<Widget> cards) =>
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionTitle(name),
-            if (description.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(description,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant)),
-              ),
-            Wrap(spacing: 12, runSpacing: 12, children: cards),
-            const SizedBox(height: 24),
-          ],
-        );
-
-    final roomOnRope = settings.extraCharmIds.length < AppSettings.maxExtras;
-
-    Widget card(Charm charm) => Stack(
-          children: [
-            _ChoiceCard(
-              picture: Padding(
-                padding: const EdgeInsets.all(18),
-                child: CharmArt(charm: charm),
-              ),
-              title: charm.name,
-              caption: charm.description,
-              selected: charm.id == chosen,
-              onTap: () => channel.update({'charm': charm.id}),
-            ),
-            Positioned(
-              top: 6,
-              left: 6,
-              child: IconButton(
-                tooltip: roomOnRope
-                    ? 'Also hang it on the rope'
-                    : 'The rope is full (${AppSettings.maxExtras + 1} charms)',
-                icon: const Icon(Icons.add_circle_outline, size: 20),
-                visualDensity: VisualDensity.compact,
-                onPressed: roomOnRope
-                    ? () => channel.update({
-                          'extraCharms': [...settings.extraCharmIds, charm.id],
-                        })
-                    : null,
-              ),
-            ),
-          ],
-        );
-
-    // The festivals near today, and a charm for the day.
-    List<Widget> thisSeason() {
-      final today = DateTime.now();
-      final near = festivals.near(today);
-      final pool = [
-        for (final c in catalog.collections)
-          if (c.id != CharmCatalog.userCollectionId) ...c.charms,
-      ].where((c) => !c.isBuiltIn).toList();
-      // An ordinary day picks from the everyday charms; the festival charms
-      // come up on their own days.
-      final everyday = [
-        for (final c in catalog.collections)
-          if (c.id != CharmCatalog.userCollectionId && c.id != 'festival')
-            ...c.charms,
-      ].where((c) => !c.isBuiltIn).toList();
-      final pick = festivals.charmOfTheDay(today, pool, everyday: everyday);
-      return [
-        for (final season in near)
-          section(
-            '${season.festival.name} · ${season.when}',
-            season.greetingNow
-                ? '${season.festival.greeting}!'
-                : 'Charms for the season. Press one to hang it.',
-            [
-              for (final id in season.festival.charmIds)
-                if (catalog.charmFor(id).id == id) card(catalog.charmFor(id)),
-            ],
-          ),
-        if (pick != null && !near.any((s) => s.festival.charmIds.contains(pick.id)))
-          section(
-            'Charm of the day',
-            'A different one every day. Today: ${pick.name}.',
-            [card(pick)],
-          ),
-      ];
-    }
-
-    Widget onRope() {
-      final main = catalog.charmFor(settings.charmId);
-      Widget art(Charm c) => SizedBox(width: 28, height: 28, child: CharmArt(charm: c));
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionTitle('On your rope'),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-                'Your main charm, and up to ${AppSettings.maxExtras} more '
-                '(three in all) hanging from the same ring, one a little '
-                'lower than the next. They swing, knock together and can each '
-                'be picked up. Press + on a charm below to add it.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant)),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(avatar: art(main), label: Text('${main.name} (main)')),
-              for (var i = 0; i < settings.extraCharmIds.length; i++)
-                InputChip(
-                  avatar: art(catalog.charmFor(settings.extraCharmIds[i])),
-                  label: Text(catalog.charmFor(settings.extraCharmIds[i]).name),
-                  onDeleted: () => channel.update({
-                    'extraCharms': [
-                      for (var j = 0; j < settings.extraCharmIds.length; j++)
-                        if (j != i) settings.extraCharmIds[j],
-                    ],
-                  }),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-        ],
-      );
-    }
-
-    return _Page(
-      title: 'Library',
-      subtitle: 'The charm that hangs on your screen. '
-          '${catalog.all.length} to choose from.',
-      children: [
-        ...thisSeason(),
-        if (settings.extraCharmIds.isNotEmpty) onRope(),
-        section(
-          'My charms',
-          'Made by you, from your photos and words. They stay on this '
-              'computer.',
-          [
-            _NewCharmCard(
-              icon: Icons.add_photo_alternate_outlined,
-              title: 'New from a photo',
-              caption: 'Put someone, or something, in a frame.',
-              onTap: onNewFromPhoto,
-            ),
-            _NewCharmCard(
-              icon: Icons.text_fields,
-              title: 'New from a name',
-              caption: 'A name or word, in English, Hindi, Tamil or Malayalam.',
-              onTap: onNewFromName,
-            ),
-            _NewCharmCard(
-              icon: Icons.favorite_border,
-              title: 'New locket',
-              caption: 'Tap it and it opens to show a photo.',
-              onTap: onNewLocket,
-            ),
-            _NewCharmCard(
-              icon: Icons.animation,
-              title: 'New animated',
-              caption: 'A GIF or animated WebP that plays while it hangs.',
-              onTap: onNewAnimated,
-            ),
-            _NewCharmCard(
-              icon: Icons.layers_outlined,
-              title: 'Design your own',
-              caption: 'Photos, words and stickers on a base you choose.',
-              onTap: onDesign,
-            ),
-            for (final charm in mine)
-              Stack(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: title,
+        child: GlassCard(
+          frosted: false,
+          glowing: selected,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Glass.radius),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  card(charm),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: IconButton(
-                      tooltip: 'Delete',
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      onPressed: () => onDelete(charm),
-                    ),
+                  SizedBox(height: 140, child: Center(child: picture)),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: Text(title, style: text.titleSmall)),
+                      if (selected)
+                        const Icon(Icons.check_circle,
+                            size: 16, color: Glass.neon),
+                    ],
                   ),
+                  const SizedBox(height: 2),
+                  Text(caption,
+                      style: text.bodySmall?.copyWith(color: Glass.muted)),
                 ],
               ),
-          ],
-        ),
-        for (final collection in catalog.collections)
-          if (collection.id != CharmCatalog.userCollectionId)
-            section(collection.name, collection.description,
-                [for (final charm in collection.charms) card(charm)]),
-      ],
-    );
-  }
-}
-
-/// A card that starts making a new charm.
-class _NewCharmCard extends StatelessWidget {
-  const _NewCharmCard({
-    required this.icon,
-    required this.title,
-    required this.caption,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String caption;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return SizedBox(
-      width: 172,
-      height: 222,
-      child: GlassCard(
-        radius: 20,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 36, color: Glass.neon),
-              const SizedBox(height: 10),
-              Text(title, style: text.titleSmall),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(caption,
-                    textAlign: TextAlign.center,
-                    style: text.bodySmall?.copyWith(color: Glass.muted)),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -798,8 +533,8 @@ class _RopesPage extends StatelessWidget {
         : settings.screenAnchorFraction;
     final fractionKey =
         following ? 'windowAnchorFraction' : 'screenAnchorFraction';
-    return _Page(
-      title: 'Ropes & Layout',
+    return GlassPage(
+      title: 'Ropes & layout',
       subtitle: 'What the charm hangs on, and where.',
       children: [
         const _SectionTitle('Rope'),
@@ -889,7 +624,7 @@ class _SettingsPageState extends State<_SettingsPage> {
   /// changes when it is let go (and the charm rings once at that volume).
   double? _draggedVolume;
   double? _draggedBreeze;
-  static const _breezeNames = ['off', 'light', 'breezy', 'windy'];
+  static const _breezeNames = ['Off', 'Light', 'Breezy', 'Windy'];
 
   @override
   void initState() {
@@ -961,19 +696,17 @@ class _SettingsPageState extends State<_SettingsPage> {
         GlassRow(
           title: title,
           subtitle: subtitle,
-          trailing: Switch(value: value, onChanged: onChanged),
+          trailing: GlassSwitch(value: value, onChanged: onChanged),
         );
 
     Widget valueText(String shown) => SizedBox(
-          width: 62,
+          width: 54,
           child: Text(shown,
               textAlign: TextAlign.right,
-              style: text.bodyMedium?.copyWith(
-                  color: Glass.neon,
-                  shadows: [Shadow(color: Glass.neon, blurRadius: 10)])),
+              style: text.bodySmall?.copyWith(color: Glass.neon)),
         );
 
-    return _Page(
+    return GlassPage(
       title: 'Settings',
       subtitle: 'How the charm behaves on this computer.',
       children: [
@@ -1024,7 +757,7 @@ class _SettingsPageState extends State<_SettingsPage> {
               children: [
                 valueText(percent == 0 ? 'Off' : '$percent%'),
                 SizedBox(
-                  width: 260,
+                  width: 200,
                   child: Slider(
                     value: volume,
                     divisions: 10,
@@ -1051,7 +784,7 @@ class _SettingsPageState extends State<_SettingsPage> {
               children: [
                 valueText(_breezeNames[(breeze * 3).round()]),
                 SizedBox(
-                  width: 260,
+                  width: 200,
                   child: Slider(
                     value: breeze,
                     divisions: 3,
@@ -1109,8 +842,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                   onPressed: () => _showWhatWouldBeShared(context),
                   child: const Text('See what would be shared'),
                 ),
-                const SizedBox(width: 14),
-                Switch(
+                const SizedBox(width: 16),
+                GlassSwitch(
                   value: s.shareStats,
                   onChanged: (v) => widget.channel.update({'shareStats': v}),
                 ),
@@ -1201,7 +934,7 @@ class _AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return _Page(
+    return GlassPage(
       title: 'About',
       subtitle: 'Version $appVersion',
       children: [

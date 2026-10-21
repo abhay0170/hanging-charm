@@ -93,7 +93,7 @@ void main() {
       expect(find.text(label), findsOneWidget, reason: label);
     }
     // Upper-cased by the heading style.
-    expect(find.text('A HEADING'), findsOneWidget);
+    expect(find.text('A heading'), findsOneWidget);
   });
 
   testWidgets('a wide control sits beside its words, or under them when '

@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><title>Library</title>
+<style>
+  .search { display: flex; align-items: center; gap: 8px; height: 34px; width: 230px; padding: 0 12px; border-radius: 10px;
+    border: 1px solid var(--line-2); background: rgba(255,255,255,.05); color: var(--faint); font-size: 13px; }
+  .chips { display: flex; gap: 8px; margin: 2px 0 18px; }
+  .chip { height: 30px; padding: 0 14px; display: flex; align-items: center; border-radius: 15px; font-size: 13px; color: var(--muted);
+    border: 1px solid var(--line); background: var(--panel); }
+  .chip.on { color: var(--neon); border-color: var(--neon-line); background: var(--neon-bg); }
+  .banner { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 18px; border-radius: var(--r);
+    border: 1px solid var(--neon-line); background: linear-gradient(90deg, rgba(94,242,224,.12), rgba(94,242,224,.03)); }
+  .banner img { width: 34px; height: 34px; }
+  .banner b { font-weight: 600; } .banner span { color: var(--muted); font-size: 12.5px; display: block; margin-top: 1px; }
+  .banner .btn { margin-left: auto; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .c { border-radius: var(--r); border: 1px solid var(--line); background: var(--panel); padding: 14px 10px 12px; text-align: center; position: relative; }
+  .c .art { height: 62px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+  .c .art img { max-height: 54px; max-width: 54px; }
+  .c .n { font-size: 13px; font-weight: 500; } .c .d { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .c.sel { border-color: var(--neon-line); background: var(--neon-bg); }
+  .c.sel::after { content: "✓"; position: absolute; top: 8px; right: 9px; width: 17px; height: 17px; border-radius: 50%; font-size: 11px; line-height: 17px;
+    background: var(--neon); color: #04110f; font-weight: 700; }
+  .c.add { border-style: dashed; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .c.add .plus { font-size: 24px; color: var(--neon); margin-bottom: 6px; }
+</style></head>
+<body><div class="wash"></div>
+<div class="titlebar"><div class="bead"></div>Charm – Customize<div class="ctl"><span>–</span><span>▢</span><span>✕</span></div></div>
+<div class="app">
+  <div class="nav">
+    <div class="brand"><div class="bead"></div>Charm</div>
+    <div class="item on"><span class="i">◇</span>Library</div>
+    <div class="item"><span class="i">⋯</span>Ropes &amp; layout</div>
+    <div class="item"><span class="i">⚙</span>Settings</div>
+    <div class="item"><span class="i">ⓘ</span>About</div>
+    <div class="grow"></div>
+    <div class="ver">Version 0.1.0</div>
+  </div>
+  <div class="main"><div class="inner" style="max-width: 800px">
+    <div class="head"><div><h1>Library</h1><p>The charm that hangs on your screen. 21 to choose from.</p></div>
+      <div class="right"><div class="search">⌕ &nbsp;Search charms</div></div></div>
+
+    <div class="banner"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/festival/akash_kandil.svg">
+      <div><b>Diwali · in 18 days</b><span>The Diwali lantern is ready to hang.</span></div><div class="btn p">Hang it</div></div>
+
+    <div class="chips"><div class="chip on">All</div><div class="chip">Classic</div><div class="chip">Luck</div><div class="chip">Nature</div><div class="chip">Festivals</div><div class="chip">Mine</div></div>
+
+    <div class="grid">
+      <div class="c add"><div class="plus">＋</div><div class="n">New charm</div><div class="d">Photo, name, locket…</div></div>
+      <div class="c sel"><div class="art"><div class="bead" style="width:46px;height:46px"></div></div><div class="n">Gold bead</div><div class="d">Classic</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/classic/star.svg"></div><div class="n">Star</div><div class="d">Classic</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/classic/heart.svg"></div><div class="n">Heart</div><div class="d">Classic</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/classic/gem.svg"></div><div class="n">Gem</div><div class="d">Classic</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/classic/moon.svg"></div><div class="n">Moon</div><div class="d">Classic</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/luck/clover.svg"></div><div class="n">Four-leaf clover</div><div class="d">Luck</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/luck/evil_eye.svg"></div><div class="n">Eye bead</div><div class="d">Luck</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/luck/horseshoe.svg"></div><div class="n">Horseshoe</div><div class="d">Luck</div></div>
+      <div class="c"><div class="art"><img src="file:///C:/Users/abhay/Documents/personal/charm_app/app_desktop/assets/charms/luck/coin.svg"></div><div class="n">Lucky coin</div><div class="d">Luck</div></div>
+    </div>
+  </div></div>
+</div></body></html>

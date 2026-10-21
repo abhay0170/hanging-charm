@@ -31,7 +31,7 @@ class CustomizeWindow : public Win32Window {
 
  private:
   // Smallest size the window may be dragged to, in logical pixels.
-  static constexpr int kMinWidth = 680;
+  static constexpr int kMinWidth = 760;
   static constexpr int kMinHeight = 480;
 
   void HandleCall(

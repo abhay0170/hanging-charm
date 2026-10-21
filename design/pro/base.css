@@ -1,0 +1,90 @@
+:root {
+  --bg: #090b10;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-2: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --text: #e8edf3;
+  --muted: rgba(232, 237, 243, 0.58);
+  --faint: rgba(232, 237, 243, 0.36);
+  --neon: #5ef2e0;
+  --neon-bg: rgba(94, 242, 224, 0.10);
+  --neon-line: rgba(94, 242, 224, 0.5);
+  --r: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1000px; height: 700px; overflow: hidden; }
+body {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; color: var(--text); background: var(--bg); position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+/* one very quiet wash of light, so the glass has something to frost */
+.wash { position: absolute; inset: 0;
+  background:
+    radial-gradient(520px 380px at 8% -4%, rgba(40, 150, 160, .22), transparent 70%),
+    radial-gradient(480px 420px at 100% 30%, rgba(90, 60, 170, .16), transparent 70%); }
+
+.titlebar { position: absolute; left: 0; right: 0; top: 0; height: 34px; display: flex; align-items: center;
+  padding: 0 14px; gap: 9px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.bead { width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #e0a93b 55%, #7a4e0e); }
+.titlebar .ctl { margin-left: auto; display: flex; gap: 26px; font-size: 13px; }
+
+.app { position: absolute; left: 0; right: 0; top: 34px; bottom: 0; display: grid; grid-template-columns: 208px 1fr; }
+
+/* sidebar: flat, on the same surface, divided by a hairline */
+.nav { border-right: 1px solid var(--line); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px;
+  background: rgba(255,255,255,.02); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; font-weight: 600; font-size: 15px; }
+.brand .bead { width: 18px; height: 18px; }
+.item { position: relative; display: flex; align-items: center; gap: 12px; height: 38px; padding: 0 12px; border-radius: 10px;
+  color: var(--muted); font-size: 13.5px; }
+.item .i { width: 18px; text-align: center; font-size: 15px; }
+.item.on { color: var(--text); background: var(--neon-bg); }
+.item.on .i { color: var(--neon); }
+.item.on::before { content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px;
+  background: var(--neon); box-shadow: 0 0 10px rgba(94,242,224,.7); }
+.nav .grow { flex: 1; }
+.nav .ver { padding: 0 12px; font-size: 12px; color: var(--faint); }
+
+.main { padding: 26px 40px 20px; overflow: hidden; }
+.main .inner { max-width: 760px; margin: 0 auto; }
+.head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 18px; }
+.head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.2px; }
+.head p { color: var(--muted); font-size: 13px; margin-top: 3px; }
+.head .right { margin-left: auto; }
+
+.section { margin: 20px 2px 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.card { border-radius: var(--r); background: var(--panel); border: 1px solid var(--line);
+  backdrop-filter: blur(16px); }
+.row { display: flex; align-items: center; gap: 24px; padding: 13px 18px; min-height: 56px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .t { flex: 1; min-width: 0; }
+.row .t b { display: block; font-weight: 500; font-size: 14px; }
+.row .t span { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+
+.sw { width: 40px; height: 22px; border-radius: 22px; background: rgba(255,255,255,.10); border: 1px solid var(--line-2);
+  position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #d8dee6; }
+.sw.on { background: rgba(94,242,224,.45); border-color: var(--neon-line); }
+.sw.on::after { left: 20px; background: #fff; }
+
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid var(--line); flex: none; }
+.seg div { padding: 6px 16px; border-radius: 7px; font-size: 13px; color: var(--muted); }
+.seg .on { background: var(--neon); color: #04110f; font-weight: 600; }
+
+.slider { width: 200px; height: 20px; position: relative; flex: none; }
+.slider .tr { position: absolute; left: 0; right: 0; top: 8px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.14); }
+.slider .fi { position: absolute; left: 0; top: 8px; height: 3px; border-radius: 3px; background: var(--neon); }
+.slider .kn { position: absolute; top: 3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 3px rgba(94,242,224,.28), 0 1px 3px rgba(0,0,0,.5); }
+.val { width: 54px; text-align: right; color: var(--neon); font-size: 12.5px; flex: none; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; color: var(--text); border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18); flex: none; }
+.btn.p { color: var(--neon); border-color: var(--neon-line);
+  background: linear-gradient(180deg, rgba(94,242,224,.20), rgba(94,242,224,.06));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 16px rgba(94,242,224,.12); }

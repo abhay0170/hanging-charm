@@ -1,34 +1,43 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// The look of the Customize window: frosted glass over a soft glow, one
-/// neon accent, and glassy buttons. Dark only, since glass needs something
-/// dark and glowing behind it to be seen.
+/// The look of the Customize window: quiet frosted panels over a dark,
+/// softly lit background, one neon accent, and glassy buttons. Dark only,
+/// since glass needs something dark to be seen against.
 class Glass {
   const Glass._();
 
   /// The single neon accent: a cool mint.
   static const neon = Color(0xFF5EF2E0);
   static const neonBright = Color(0xFFA4FFF2);
-  static const base = Color(0xFF07080D);
+  static const base = Color(0xFF090B10);
 
-  static const text = Color(0xFFEEF2F7);
+  static const text = Color(0xFFE8EDF3);
   static final muted = text.withValues(alpha: 0.58);
-  static final faint = text.withValues(alpha: 0.34);
+  static final faint = text.withValues(alpha: 0.36);
 
-  static final fill = Colors.white.withValues(alpha: 0.055);
-  static final fillStrong = Colors.white.withValues(alpha: 0.09);
-  static final line = Colors.white.withValues(alpha: 0.13);
-  static final neonLine = neon.withValues(alpha: 0.55);
-  static final divider = Colors.white.withValues(alpha: 0.07);
+  static final fill = Colors.white.withValues(alpha: 0.04);
+  static final fillStrong = Colors.white.withValues(alpha: 0.07);
+  static final line = Colors.white.withValues(alpha: 0.08);
+  static final lineStrong = Colors.white.withValues(alpha: 0.14);
+  static final neonFill = neon.withValues(alpha: 0.10);
+  static final neonLine = neon.withValues(alpha: 0.5);
+  static final divider = Colors.white.withValues(alpha: 0.08);
 
-  static const radius = 22.0;
+  /// The corner radius of panels, tiles and fields; buttons use a little
+  /// less.
+  static const radius = 12.0;
+  static const buttonRadius = 10.0;
+
+  static const fontFamily = 'Segoe UI Variable Text';
+  static const fontFallback = ['Segoe UI', 'Nirmala UI'];
 
   // ---- The theme ----
 
   static ThemeData theme() {
-    const scheme = ColorScheme.dark(
+    final scheme = const ColorScheme.dark(
       primary: neon,
       onPrimary: Color(0xFF04110F),
       secondary: neonBright,
@@ -36,91 +45,94 @@ class Glass {
       surface: base,
       onSurface: text,
       error: Color(0xFFFF8A8A),
-    );
-    final scheme2 = scheme.copyWith(
+    ).copyWith(
       onSurfaceVariant: muted,
-      outline: Colors.white.withValues(alpha: 0.22),
+      outline: lineStrong,
       outlineVariant: line,
-      surfaceContainerHighest: const Color(0xFF1E2736),
+      surfaceContainerHighest: const Color(0xFF1A2130),
       primaryContainer: const Color(0xFF0E3A38),
       onPrimaryContainer: text,
     );
-    final base0 = ThemeData(
-      colorScheme: scheme2,
+    final themed = ThemeData(
+      colorScheme: scheme,
       brightness: Brightness.dark,
-      fontFamily: 'Segoe UI',
+      fontFamily: fontFamily,
+      fontFamilyFallback: fontFallback,
       scaffoldBackgroundColor: Colors.transparent,
       canvasColor: const Color(0xFF121722),
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
       hoverColor: Colors.white.withValues(alpha: 0.04),
     );
-    final t = base0.textTheme.apply(bodyColor: text, displayColor: text);
-    return base0.copyWith(
+    final t = themed.textTheme.apply(bodyColor: text, displayColor: text);
+    return themed.copyWith(
       textTheme: t.copyWith(
         headlineSmall: t.headlineSmall?.copyWith(
-            fontSize: 40, fontWeight: FontWeight.w300, letterSpacing: -0.5),
-        titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w400),
-        titleMedium: t.titleMedium
-            ?.copyWith(fontSize: 18, fontWeight: FontWeight.w500),
-        titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w500),
-        bodyMedium: t.bodyMedium?.copyWith(fontSize: 15, height: 1.4),
-        bodySmall: t.bodySmall?.copyWith(fontSize: 13.5, height: 1.4),
+            fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        titleLarge:
+            t.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
+        titleMedium:
+            t.titleMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
+        titleSmall:
+            t.titleSmall?.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
+        bodyLarge: t.bodyLarge?.copyWith(fontSize: 15),
+        bodyMedium: t.bodyMedium?.copyWith(fontSize: 14, height: 1.4),
+        bodySmall: t.bodySmall?.copyWith(fontSize: 12.5, height: 1.4),
+        labelMedium: t.labelMedium?.copyWith(fontSize: 12),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: t.titleLarge?.copyWith(fontWeight: FontWeight.w300),
+        titleTextStyle:
+            t.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
       ),
       dividerTheme: DividerThemeData(color: divider, space: 1, thickness: 1),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xF2121722),
+        backgroundColor: const Color(0xF4121722),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(26),
-          side: BorderSide(color: line),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: lineStrong),
         ),
-        titleTextStyle: t.headlineSmall
-            ?.copyWith(fontSize: 26, fontWeight: FontWeight.w300),
+        titleTextStyle:
+            t.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
+        contentTextStyle: t.bodyMedium?.copyWith(color: muted),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xEE182030),
         contentTextStyle: t.bodyMedium,
         elevation: 0,
+        width: 460,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: line),
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: lineStrong),
         ),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.disabled)
-                ? Colors.white30
-                : (s.contains(WidgetState.selected)
-                    ? Colors.white
-                    : const Color(0xFFD5DCE5))),
+            s.contains(WidgetState.selected)
+                ? Colors.white
+                : const Color(0xFFD5DCE5)),
         trackColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected)
-                ? neon.withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.09)),
-        trackOutlineColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? neonLine : line),
-        trackOutlineWidth: const WidgetStatePropertyAll(1),
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+                ? neon.withValues(alpha: 0.45)
+                : Colors.white.withValues(alpha: 0.10)),
+        trackOutlineColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? neonLine : lineStrong),
       ),
       sliderTheme: SliderThemeData(
-        trackHeight: 4,
+        trackHeight: 3,
         activeTrackColor: neon,
-        inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+        inactiveTrackColor: Colors.white.withValues(alpha: 0.14),
         activeTickMarkColor: Colors.transparent,
         inactiveTickMarkColor: Colors.white.withValues(alpha: 0.28),
-        thumbColor: neonBright,
-        overlayColor: neon.withValues(alpha: 0.14),
-        thumbShape: const _GlowThumb(),
+        thumbColor: Colors.white,
+        overlayColor: neon.withValues(alpha: 0.12),
+        thumbShape: const _RingThumb(),
         valueIndicatorColor: const Color(0xF2182030),
         valueIndicatorTextStyle: t.bodySmall?.copyWith(color: neon),
       ),
@@ -130,8 +142,9 @@ class Glass {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: neon,
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(buttonRadius)),
         ).copyWith(
           overlayColor: WidgetStatePropertyAll(neon.withValues(alpha: 0.10)),
         ),
@@ -143,45 +156,50 @@ class Glass {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected) ? neon : fill),
+          backgroundColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected) ? neon : fill),
           foregroundColor: WidgetStateProperty.resolveWith((s) =>
               s.contains(WidgetState.selected)
                   ? const Color(0xFF04110F)
                   : muted),
           side: WidgetStatePropertyAll(BorderSide(color: line)),
-          shape: WidgetStatePropertyAll(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(buttonRadius))),
+          padding: const WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 14, vertical: 9)),
           textStyle: const WidgetStatePropertyAll(
-              TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+              TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           overlayColor: WidgetStatePropertyAll(neon.withValues(alpha: 0.08)),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: fill,
-        selectedColor: neon.withValues(alpha: 0.22),
+        selectedColor: neonFill,
         side: BorderSide(color: line),
-        labelStyle: t.bodyMedium,
+        labelStyle: t.bodyMedium?.copyWith(fontSize: 13),
         checkmarkColor: neon,
         deleteIconColor: muted,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: const StadiumBorder(),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: fill,
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         labelStyle: TextStyle(color: muted),
         hintStyle: TextStyle(color: faint),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: line),
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: BorderSide(color: lineStrong),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: line),
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: BorderSide(color: lineStrong),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: neon, width: 1.4),
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: const BorderSide(color: neon, width: 1.2),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(color: neon),
@@ -192,16 +210,17 @@ class Glass {
       ),
       listTileTheme: ListTileThemeData(
         iconColor: neon,
-        titleTextStyle: t.titleMedium?.copyWith(fontSize: 17),
+        titleTextStyle: t.titleMedium,
         subtitleTextStyle: t.bodySmall?.copyWith(color: muted),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: const Color(0xF2182030),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: line),
         ),
         textStyle: t.bodySmall,
+        waitDuration: const Duration(milliseconds: 400),
       ),
     );
   }
@@ -213,18 +232,19 @@ class Glass {
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
         foregroundColor: const WidgetStatePropertyAll(text),
+        minimumSize: const WidgetStatePropertyAll(Size(0, 36)),
         padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 22, vertical: 14)),
+            EdgeInsets.symmetric(horizontal: 16, vertical: 9)),
         textStyle: const WidgetStatePropertyAll(
-            TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
         overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius))),
         side: const WidgetStatePropertyAll(BorderSide.none),
         backgroundBuilder: (context, states, child) => _GlassFace(
           states: states,
           tint: Colors.white,
-          border: Colors.white.withValues(alpha: 0.2),
+          border: lineStrong,
           child: child!,
         ),
       );
@@ -237,13 +257,14 @@ class Glass {
         elevation: const WidgetStatePropertyAll(0),
         foregroundColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.disabled) ? Colors.white30 : neon),
+        minimumSize: const WidgetStatePropertyAll(Size(0, 36)),
         padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
+            EdgeInsets.symmetric(horizontal: 18, vertical: 9)),
         textStyle: const WidgetStatePropertyAll(
-            TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius))),
         side: const WidgetStatePropertyAll(BorderSide.none),
         backgroundBuilder: (context, states, child) => _GlassFace(
           states: states,
@@ -256,7 +277,7 @@ class Glass {
 }
 
 /// The face of a glass button: a gradient fill that brightens under the
-/// cursor, a border, a faint glow for the neon kind.
+/// cursor, a border, and a faint glow for the neon kind.
 class _GlassFace extends StatelessWidget {
   const _GlassFace({
     required this.states,
@@ -278,13 +299,13 @@ class _GlassFace extends StatelessWidget {
     final lit = states.contains(WidgetState.hovered) ||
         states.contains(WidgetState.pressed) ||
         states.contains(WidgetState.focused);
-    final top = (glow ? 0.20 : 0.14) + (lit ? 0.08 : 0);
-    final bottom = (glow ? 0.06 : 0.05) + (lit ? 0.05 : 0);
+    final top = (glow ? 0.20 : 0.11) + (lit ? 0.07 : 0);
+    final bottom = (glow ? 0.06 : 0.04) + (lit ? 0.04 : 0);
     return Opacity(
       opacity: disabled ? 0.45 : 1,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Glass.buttonRadius),
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -297,8 +318,8 @@ class _GlassFace extends StatelessWidget {
           boxShadow: [
             if (glow && !disabled)
               BoxShadow(
-                color: Glass.neon.withValues(alpha: lit ? 0.32 : 0.2),
-                blurRadius: lit ? 26 : 20,
+                color: Glass.neon.withValues(alpha: lit ? 0.22 : 0.12),
+                blurRadius: lit ? 20 : 14,
               ),
           ],
         ),
@@ -308,13 +329,13 @@ class _GlassFace extends StatelessWidget {
   }
 }
 
-/// A slider handle that glows.
-class _GlowThumb extends SliderComponentShape {
-  const _GlowThumb();
+/// A slider handle: white, with a soft neon ring.
+class _RingThumb extends SliderComponentShape {
+  const _RingThumb();
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
-      const Size.fromRadius(12);
+      const Size.fromRadius(10);
 
   @override
   void paint(
@@ -333,26 +354,83 @@ class _GlowThumb extends SliderComponentShape {
   }) {
     final canvas = context.canvas;
     canvas.drawCircle(
-      center,
-      15,
-      Paint()
-        ..color = Glass.neon.withValues(alpha: 0.4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
-    );
+        center, 10, Paint()..color = Glass.neon.withValues(alpha: 0.28));
     canvas.drawCircle(
-      center,
-      9.5,
+      center.translate(0, 1),
+      7,
       Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.3, -0.4),
-          colors: [Colors.white, Color(0xFFBFFAF3), Glass.neon],
-          stops: [0, 0.6, 1],
-        ).createShader(Rect.fromCircle(center: center, radius: 9.5)),
+        ..color = Colors.black.withValues(alpha: 0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+    );
+    canvas.drawCircle(center, 7, Paint()..color = Colors.white);
+  }
+}
+
+/// A small switch: a glass pill, lit mint when on.
+class GlassSwitch extends StatelessWidget {
+  const GlassSwitch({super.key, required this.value, required this.onChanged});
+
+  final bool value;
+
+  /// Null makes it unusable and dim.
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onChanged != null;
+    void toggle() => onChanged?.call(!value);
+    return Semantics(
+      toggled: value,
+      enabled: enabled,
+      child: FocusableActionDetector(
+        enabled: enabled,
+        mouseCursor:
+            enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+            toggle();
+            return null;
+          }),
+        },
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        },
+        child: GestureDetector(
+          onTap: enabled ? toggle : null,
+          child: Opacity(
+            opacity: enabled ? 1 : 0.4,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: 40,
+              height: 22,
+              padding: const EdgeInsets.all(2),
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+                color: value
+                    ? Glass.neon.withValues(alpha: 0.45)
+                    : Colors.white.withValues(alpha: 0.10),
+                border: Border.all(
+                    color: value ? Glass.neonLine : Glass.lineStrong),
+              ),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? Colors.white : const Color(0xFFD5DCE5),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-/// The glow behind everything: the base colour with a few soft lights, so
+/// The light behind everything: the base colour with two soft washes, so
 /// the glass has something to frost.
 class GlassBackground extends StatelessWidget {
   const GlassBackground({super.key, required this.child});
@@ -397,19 +475,17 @@ class _GlowPainter extends CustomPainter {
       );
     }
 
-    light(Offset(size.width * 0.02, size.height * 0.02), size.height * 0.62,
-        const Color(0xFF1C6B7A).withValues(alpha: 0.55));
-    light(Offset(size.width * 0.98, size.height * 0.35), size.height * 0.55,
-        const Color(0xFF4A2D8F).withValues(alpha: 0.5));
-    light(Offset(size.width * 0.45, size.height * 1.02), size.height * 0.55,
-        const Color(0xFF0F5A58).withValues(alpha: 0.45));
+    light(Offset(size.width * 0.05, size.height * -0.02), size.height * 0.62,
+        const Color(0xFF28969F).withValues(alpha: 0.22));
+    light(Offset(size.width * 1.0, size.height * 0.3), size.height * 0.6,
+        const Color(0xFF5A3CAA).withValues(alpha: 0.16));
   }
 
   @override
   bool shouldRepaint(_GlowPainter old) => false;
 }
 
-/// A panel of frosted glass.
+/// A panel of glass.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -417,53 +493,37 @@ class GlassCard extends StatelessWidget {
     this.radius = Glass.radius,
     this.padding = EdgeInsets.zero,
     this.glowing = false,
+    this.frosted = true,
   });
 
   final Widget child;
   final double radius;
   final EdgeInsetsGeometry padding;
 
-  /// Lit with the neon accent, as a chosen card is.
+  /// Lit with the neon accent, as the chosen tile is.
   final bool glowing;
+
+  /// Blur what is behind it. Off for small tiles drawn in dozens, where it
+  /// would cost more than it shows.
+  final bool frosted;
 
   @override
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(radius);
-    return DecoratedBox(
+    final face = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: shape,
-        boxShadow: [
-          BoxShadow(
-            color: glowing
-                ? Glass.neon.withValues(alpha: 0.18)
-                : Colors.black.withValues(alpha: 0.28),
-            blurRadius: glowing ? 24 : 34,
-            offset: glowing ? Offset.zero : const Offset(0, 14),
-          ),
-        ],
+        color: glowing ? Glass.neonFill : Glass.fill,
+        border: Border.all(color: glowing ? Glass.neonLine : Glass.line),
       ),
-      child: ClipRRect(
-        borderRadius: shape,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: shape,
-              color: glowing ? Glass.neon.withValues(alpha: 0.09) : Glass.fill,
-              border: Border.all(color: glowing ? Glass.neonLine : Glass.line),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withValues(alpha: 0.06),
-                  Colors.white.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-            child: Padding(padding: padding, child: child),
-          ),
-        ),
-      ),
+      child: Padding(padding: padding, child: child),
+    );
+    return ClipRRect(
+      borderRadius: shape,
+      child: frosted
+          ? BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16), child: face)
+          : face,
     );
   }
 }
@@ -477,11 +537,10 @@ class GlassGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) Divider(color: Glass.divider, height: 1, indent: 10, endIndent: 10),
+            if (i > 0) Divider(color: Glass.divider, height: 1),
             rows[i],
           ],
         ],
@@ -502,14 +561,14 @@ class GlassRow extends StatelessWidget {
     this.wide = false,
   });
 
-  /// The control is wide (a slider, a row of buttons), so in a narrow window
-  /// it goes under the words instead of squeezing them.
-  final bool wide;
-
   final String title;
   final String? subtitle;
   final Widget? trailing;
   final Widget? leading;
+
+  /// The control is wide (a slider, a row of buttons), so in a narrow window
+  /// it goes under the words instead of squeezing them.
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -520,52 +579,58 @@ class GlassRow extends StatelessWidget {
       children: [
         Text(title, style: text.titleMedium),
         if (subtitle != null) ...[
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(subtitle!, style: text.bodySmall?.copyWith(color: Glass.muted)),
         ],
       ],
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          // Too narrow for the control beside the words: put it underneath.
-          final stacked = wide && trailing != null && box.maxWidth < 760;
-          return stacked
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (leading != null) ...[
-                          leading!,
-                          const SizedBox(width: 14)
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 56),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // Too narrow for the control beside the words: put it underneath.
+            final stacked = wide && trailing != null && box.maxWidth < 600;
+            return stacked
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          if (leading != null) ...[
+                            leading!,
+                            const SizedBox(width: 14)
+                          ],
+                          Expanded(child: words),
                         ],
-                        Expanded(child: words),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Align(alignment: Alignment.centerRight, child: trailing!),
-                  ],
-                )
-              : Row(
-                  children: [
-                    if (leading != null) ...[leading!, const SizedBox(width: 14)],
-                    Expanded(child: words),
-                    if (trailing != null) ...[
-                      const SizedBox(width: 22),
-                      trailing!,
+                      ),
+                      const SizedBox(height: 10),
+                      Align(alignment: Alignment.centerRight, child: trailing!),
                     ],
-                  ],
-                );
-        },
+                  )
+                : Row(
+                    children: [
+                      if (leading != null) ...[
+                        leading!,
+                        const SizedBox(width: 14)
+                      ],
+                      Expanded(child: words),
+                      if (trailing != null) ...[
+                        const SizedBox(width: 24),
+                        trailing!,
+                      ],
+                    ],
+                  );
+          },
+        ),
       ),
     );
   }
 }
 
-/// A section heading: small neon capitals and a hairline that fades out.
+/// A section heading: small, plain, a little quieter than the page.
 class GlassLabel extends StatelessWidget {
   const GlassLabel(this.text, {super.key});
 
@@ -573,31 +638,81 @@ class GlassLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
-        child: Row(
-          children: [
-            Text(
-              text.toUpperCase(),
-              style: TextStyle(
-                fontSize: 12.5,
-                letterSpacing: 2.2,
-                color: Glass.neon.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    Glass.neon.withValues(alpha: 0.35),
-                    Glass.neon.withValues(alpha: 0),
-                  ]),
-                ),
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.fromLTRB(2, 20, 2, 8),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Glass.muted,
+          ),
         ),
       );
+}
+
+/// A page: a title and one line under it on the left (and anything you
+/// like on the right), then the content, in a column that stops growing on
+/// a wide window.
+class GlassPage extends StatelessWidget {
+  const GlassPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.children,
+    this.trailing,
+    this.maxWidth = 760,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+  final Widget? trailing;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return LayoutBuilder(builder: (context, box) {
+      final side = box.maxWidth < 640 ? 22.0 : 40.0;
+      return ListView(
+        padding: EdgeInsets.fromLTRB(side, 26, side, 28),
+        children: [
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title, style: text.headlineSmall),
+                            const SizedBox(height: 3),
+                            Text(subtitle,
+                                style: text.bodySmall?.copyWith(
+                                    color: Glass.muted, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      if (trailing != null) ...[
+                        const SizedBox(width: 16),
+                        trailing!,
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...children,
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
 }
