@@ -728,7 +728,6 @@ class RopeSim {
 
   void _stepExtras(double windStep) {
     final m = _extras.length;
-    final n = _px.length - 1;
     final damping = _style.damping;
     final gravityStep = _style.gravity * dt * dt;
     final frictionStep = _style.friction * dt * dt;
@@ -768,17 +767,14 @@ class RopeSim {
         final d = math.sqrt(dx * dx + dy * dy);
         final reach = _extras[k].reach;
         if (d <= reach || d == 0) continue;
-        final wE = k == _grabbedExtra ? 0.0 : 1 / _extras[k].mass;
-        // The main charm carries the ring and is not moved by the extras,
-        // except by one being carried by hand.
-        final wH = (k == _grabbedExtra && !_grabbed) ? _invMass[n] : 0.0;
-        final w = wE + wH;
-        if (w == 0) continue;
-        final c = (d - reach) / (d * w);
-        _ex[k] -= dx * c * wE;
-        _ey[k] -= dy * c * wE;
-        _px[n] += dx * c * wH;
-        _py[n] += dy * c * wH;
+        // The main charm carries the ring and is never pulled by an extra,
+        // even one carried by hand: the rope can't be stretched that way. A
+        // carried extra simply stops at the end of its cord, in the
+        // direction of the hand, as the main charm stops at the end of the
+        // rope.
+        final k2 = reach / d;
+        _ex[k] = hubX + dx * k2;
+        _ey[k] = hubY + dy * k2;
       }
       _collide(record: it == 0);
     }

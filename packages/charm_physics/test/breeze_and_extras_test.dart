@@ -215,7 +215,8 @@ void main() {
       final k = 1;
       sim.grab(sim.extraX(k), sim.extraY(k), charm: k + 1);
       expect(sim.isGrabbed, isTrue);
-      final targetX = sim.extraX(k) + 40, targetY = sim.extraY(k) + 10;
+      // A spot well inside the cord's reach, to one side.
+      final targetX = sim.ringX + 45, targetY = sim.ringY + 50;
       for (var f = 0; f < 30; f++) {
         sim.dragTo(targetX, targetY);
         run(sim, 1 / 60);
@@ -376,6 +377,36 @@ void wallTests() {
       var most = 0.0;
       run(sim, 4, () => most = math.min(most, sim.charmX));
       expect(most, lessThan(-60));
+    });
+
+    test('carrying an extra far away never stretches the rope', () {
+      for (final which in [0, 1, 2, 3, 4]) {
+        final sim = cluster();
+        run(sim, 3);
+        final x = which == 0 ? sim.charmX : sim.extraX(which - 1);
+        final y = which == 0 ? sim.charmY : sim.extraY(which - 1);
+        sim.grab(x, y, charm: which);
+        var longest = 0.0;
+        for (var f = 1; f <= 60; f++) {
+          // The hand runs off 800 px away.
+          sim.dragTo(x + 7 * f * 2, y + 6 * f);
+          run(sim, 1 / 60);
+          longest = math.max(longest, sim.ropeLength);
+          if (which > 0) {
+            expect(
+              distanceToRing(sim, which - 1),
+              lessThanOrEqualTo(_extras[which - 1].reach + 0.5),
+              reason: 'a carried extra stops at the end of its cord',
+            );
+          }
+        }
+        run(sim, 1.5, () => longest = math.max(longest, sim.ropeLength));
+        expect(
+          longest,
+          lessThan(sim.restLength * 1.03),
+          reason: 'carrying charm $which',
+        );
+      }
     });
   });
 }

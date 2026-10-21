@@ -116,7 +116,11 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   sit in a clump. They swing apart and together, knock (and chime, if the chime is on) with
   a sound by the lighter charm's weight, and each can be picked up and
   carried; let go and it swings back. The main charm carries the ring and is
-  not pushed around by the extras, so its swing is unchanged. Extra charms
+  not pushed around by the extras, so its swing is unchanged. A charm you
+  carry stops at the end of its own cord (in the direction of your hand),
+  just as the main charm stops at the end of the rope: pulling an extra far
+  away can never stretch the rope (it once did, to 680 px from 180; now
+  tested at under 3% for every charm). Extra charms
   are shown as they are (a locket stays closed, a GIF plays); only the main
   charm's locket opens on a tap. The window is taller (340 instead of 240
   logical pixels) to leave room. A knock is reported once, when two charms
@@ -297,6 +301,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Wall on screen (a hard throw into the edge), and the Where it hangs buttons in Customize | Not tested on screen (physics tested; settings changed through the settings file) |
 | Cluster layout on screen (bead with star and heart, clover with coin and horseshoe, gem with moon and leaf): staggered, one lower than the other, no overlap | ✅ |
 | Layout tests (4): sides alternate and each hangs lower; 200 random sets of sizes never overlap; small charms hang closer than big ones | ✅ |
+| Rope stretch fix on screen: the heart dragged 400 px away stops at the end of its cord and the chain stays at its length | ✅ |
+| Stretch test (1 new, 89 physics in all): each of the five charms dragged 800 px away, rope under 3% longer, carried extra never beyond its cord | ✅ |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
