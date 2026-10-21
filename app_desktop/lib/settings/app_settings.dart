@@ -11,6 +11,7 @@ class AppSettings {
     this.followWindow = true,
     this.charmVisible = true,
     this.animateCharms = true,
+    this.reactToWiggle = false,
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
     this.welcomeCompleted = false,
@@ -40,6 +41,10 @@ class AppSettings {
   /// cost nothing more than a still charm.
   final bool animateCharms;
 
+  /// Whether shaking the mouse makes the charm sway a little. Off unless
+  /// asked for, since it means watching where the cursor goes.
+  final bool reactToWiggle;
+
   /// How far along a window's top edge the pin sits, set by dragging it.
   final double windowAnchorFraction;
 
@@ -68,6 +73,7 @@ class AppSettings {
     bool? followWindow,
     bool? charmVisible,
     bool? animateCharms,
+    bool? reactToWiggle,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
     bool? welcomeCompleted,
@@ -80,6 +86,7 @@ class AppSettings {
       followWindow: followWindow ?? this.followWindow,
       charmVisible: charmVisible ?? this.charmVisible,
       animateCharms: animateCharms ?? this.animateCharms,
+      reactToWiggle: reactToWiggle ?? this.reactToWiggle,
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
       welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
@@ -95,6 +102,7 @@ class AppSettings {
         'followWindow': followWindow,
         'charmVisible': charmVisible,
         'animateCharms': animateCharms,
+        'reactToWiggle': reactToWiggle,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
         'welcomeCompleted': welcomeCompleted,
@@ -129,6 +137,7 @@ class AppSettings {
       followWindow: read<bool>('followWindow', d.followWindow),
       charmVisible: read<bool>('charmVisible', d.charmVisible),
       animateCharms: read<bool>('animateCharms', d.animateCharms),
+      reactToWiggle: read<bool>('reactToWiggle', d.reactToWiggle),
       windowAnchorFraction:
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
@@ -148,6 +157,7 @@ class AppSettings {
       other.followWindow == followWindow &&
       other.charmVisible == charmVisible &&
       other.animateCharms == animateCharms &&
+      other.reactToWiggle == reactToWiggle &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
       other.welcomeCompleted == welcomeCompleted &&
@@ -161,6 +171,7 @@ class AppSettings {
       followWindow,
       charmVisible,
       animateCharms,
+      reactToWiggle,
       windowAnchorFraction,
       screenAnchorFraction,
       welcomeCompleted,

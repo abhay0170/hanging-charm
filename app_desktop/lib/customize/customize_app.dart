@@ -783,6 +783,15 @@ class _SettingsPageState extends State<_SettingsPage> {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
+          title: const Text('Sway when I shake the mouse'),
+          subtitle: const Text('Shake the mouse and the charm gives a small '
+              'sway. Off unless you turn it on, because it watches where '
+              'the cursor goes (nothing is kept or sent).'),
+          value: widget.settings.reactToWiggle,
+          onChanged: (v) => widget.channel.update({'reactToWiggle': v}),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
           title: const Text('Launch at login'),
           subtitle: const Text('Start the charm when you sign in to Windows.'),
           value: _launchAtLogin ?? false,

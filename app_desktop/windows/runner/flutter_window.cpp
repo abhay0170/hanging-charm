@@ -116,6 +116,14 @@ void FlutterWindow::HandleOverlayCall(
     }
     anchor_tracker_->SetFollowActiveWindow(*follow);
     result->Success();
+  } else if (method == "setCursorStream") {
+    const auto* on = std::get_if<bool>(call.arguments());
+    if (!on) {
+      result->Error("bad_args", "setCursorStream expects a bool");
+      return;
+    }
+    cursor_stream_ = *on;
+    result->Success();
   } else if (method == "setCharmVisible") {
     const auto* visible = std::get_if<bool>(call.arguments());
     if (!visible) {
@@ -297,6 +305,12 @@ void FlutterWindow::CheckCursor() {
   if (!overlay_channel_) return;
   const bool moved = point.x != last_cursor_.x || point.y != last_cursor_.y;
   last_cursor_ = point;
+  if (cursor_stream_ && moved) {
+    overlay_channel_->InvokeMethod(
+        "cursorMoved",
+        std::make_unique<flutter::EncodableValue>(flutter::EncodableList{
+            flutter::EncodableValue(x), flutter::EncodableValue(y)}));
+  }
   if (near_rect && moved) {
     overlay_channel_->InvokeMethod(
         "cursorNear",

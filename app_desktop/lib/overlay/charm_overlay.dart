@@ -12,6 +12,7 @@ import '../charms/user_charms.dart';
 import '../customize/protocol.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
+import 'wiggle_detector.dart';
 import '../settings/settings_store.dart';
 import 'charm_painter.dart';
 import 'overlay_channel.dart';
@@ -64,6 +65,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     onAnchorMoved: _onAnchorMoved,
     onTrayCommand: _onTrayCommand,
     onCustomizeMessage: _onCustomizeMessage,
+    onCursorMoved: _onCursorMoved,
     onVisibility: (visible) {
       _onScreen = visible;
       _animate();
@@ -118,6 +120,10 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (old?.followWindow != next.followWindow) {
       _channel.setFollowActive(!_benchSwing && next.followWindow);
     }
+    if (old?.reactToWiggle != next.reactToWiggle) {
+      _wiggle = WiggleDetector();
+      _channel.setCursorStream(next.reactToWiggle);
+    }
     if (old?.animateCharms != next.animateCharms) {
       _animate();
       setState(() {}); // The painter shows one frame or all of them.
@@ -164,6 +170,27 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _sim?.charmMass = charm.mass;
     _wake();
     _animate();
+  }
+
+  // ---- Mouse wiggle ----
+  //
+  // Shake the mouse and the charm gives a small sway, away from the cursor
+  // as if stirred by the air. It is a nudge of at most about 140 px/s, a
+  // swing of 8 degrees at most however hard you shake. Only the cursor's
+  // sideways position is looked at, and only while this is switched on.
+
+  var _wiggle = WiggleDetector();
+  static const double _wiggleSpeed = 60;
+  static const double _wiggleExtra = 80;
+
+  void _onCursorMoved(Offset cursor) {
+    final sim = _sim;
+    if (sim == null) return;
+    final strength = _wiggle.add(_clock.elapsed, cursor.dx);
+    if (strength == null) return;
+    final away = charmCenter(sim).dx >= cursor.dx ? 1.0 : -1.0;
+    sim.nudge(away * (_wiggleSpeed + _wiggleExtra * strength), 0);
+    _wake();
   }
 
   // ---- Lockets ----

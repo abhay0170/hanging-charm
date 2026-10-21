@@ -169,6 +169,14 @@ void main() {
     expect(big, lessThan(small * 5));
   });
 
+  test('the strongest mouse-wiggle nudge (140 px/s) stays under 9 degrees', () {
+    for (final style in RopeStyle.all) {
+      final sim = RopeSim(style: style, anchorX: 0, anchorY: 0);
+      sim.nudge(140, 0);
+      expect(maxSwing(sim, 4), lessThan(9 * deg), reason: style.name);
+    }
+  });
+
   test('moving the anchor swings the charm no further than the anchor moved',
       () {
     for (final distance in [20.0, 60.0, 150.0]) {

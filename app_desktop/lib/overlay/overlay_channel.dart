@@ -21,6 +21,7 @@ class OverlayChannel {
     this.onTrayCommand,
     this.onCustomizeMessage,
     this.onVisibility,
+    this.onCursorMoved,
   }) {
     _channel.setMethodCallHandler(_handle);
   }
@@ -47,6 +48,10 @@ class OverlayChannel {
   /// The charm's window was shown or hidden (by the user, or because a
   /// full-screen window is in front).
   final void Function(bool visible)? onVisibility;
+
+  /// The cursor moved to this point in the charm window's coordinates (it
+  /// may be outside the window). Only sent after [setCursorStream] is on.
+  final void Function(Offset cursor)? onCursorMoved;
 
   bool _supported = true;
   List<Rect> _sentRects = const [];
@@ -87,6 +92,9 @@ class OverlayChannel {
   Future<void> setFollowActive(bool follow) => _call('setFollowActive', follow);
 
   /// Shows or hides the charm (a full-screen app hides it regardless).
+  /// Starts or stops the stream of cursor positions ([onCursorMoved]).
+  Future<void> setCursorStream(bool on) => _call('setCursorStream', on);
+
   Future<void> setCharmVisible(bool visible) =>
       _call('setCharmVisible', visible);
 
@@ -144,6 +152,10 @@ class OverlayChannel {
         if (message is Map) {
           onCustomizeMessage?.call(message.cast<String, Object?>());
         }
+      case 'cursorMoved':
+        final point = call.arguments as List<Object?>;
+        onCursorMoved?.call(Offset(
+            (point[0]! as num).toDouble(), (point[1]! as num).toDouble()));
       case 'visibility':
         onVisibility?.call(call.arguments as bool);
       case 'anchorMoved':

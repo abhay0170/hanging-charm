@@ -74,6 +74,9 @@ class FlutterWindow : public Win32Window {
   bool hold_interactive_ = false;
   bool interactive_ = false;
   bool cursor_was_near_ = false;
+  // Tell Dart where the cursor is as it moves (for the mouse-wiggle
+  // reaction). Off unless the user asked for that reaction.
+  bool cursor_stream_ = false;
   POINT last_cursor_ = {};
 
   // The project to run.

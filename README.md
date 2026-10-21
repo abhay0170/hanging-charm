@@ -73,6 +73,17 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   cover and the inside are saved as two PNGs (`<id>.png` and
   `<id>_open.png`, listed as `openArt` in `my_charms.json`); deleting the
   charm deletes both, and an entry whose inside is missing is left out.
+- **Mouse wiggle** (Settings → Sway when I shake the mouse; off by default):
+  shake the mouse side to side (four strokes of at least 40 px within 0.8 s,
+  faster than 450 px/s on average) and the charm gives a small sway away
+  from the cursor. The push is 60 to 140 px/s depending on how hard you
+  shake, which swings it 8° at most on any rope (tested), so a wiggle can
+  never make a big swing. A quick sweep across the screen, a slow back and
+  forth, and hand tremor do nothing, and it waits 1.5 s before reacting
+  again. Only the cursor's sideways position is looked at, and only while
+  the switch is on; nothing is kept or sent. A keyboard nudge was left out
+  on purpose: noticing keystrokes needs a global keyboard hook, which is
+  how key loggers work, and a privacy-first app shouldn't do that.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -214,6 +225,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Locket on screen (heart, gold chain): tap turns it edge-on then shows the photo; it closes by itself after about 8 s. Covers checked for heart, circle, oval and rounded square with Latin and Malayalam engraving and none | ✅ |
 | Locket tests: engraving cut by visible letters, every shape × engraving draws, `openArt` accepted only for user files (path tricks refused), saved and deleted with its inside, sprite holds cover and inside and doesn't play (5) | ✅ |
 | "New locket" in Customize (file picker, Cover/Inside preview, engraving field) | Written and analyzed, not clicked through |
+| Mouse wiggle on screen (cursor shaken 400 px below the charm, off the charm): charm sways, ~7 px measured at its centre; a straight sweep of the same distance: 0 px | ✅ |
+| Wiggle tests: shake noticed once, harder = stronger, fast sweep / slow back-and-forth / tremor / strokes spread over seconds ignored, cooldown (7) · physics: strongest wiggle nudge under 9° on all 9 ropes (1) | ✅ |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |
