@@ -107,15 +107,15 @@ void main() {
     store.dispose();
   });
 
-  test('extra charms are kept in order, at most four, strings only', () {
+  test('extra charms are kept in order, at most two, strings only', () {
     final s = AppSettings.fromJson({
       'extraCharms': ['a', 7, '', 'b', null, 'c', 'd', 'e', 'f'],
     });
-    expect(s.extraCharmIds, ['a', 'b', 'c', 'd']);
+    expect(s.extraCharmIds, ['a', 'b']);
     expect(AppSettings.fromJson({'extraCharms': 'nope'}).extraCharmIds,
         isEmpty);
     expect(const AppSettings().copyWith(extraCharmIds: ['1', '2', '3', '4', '5'])
-        .extraCharmIds, hasLength(4));
+        .extraCharmIds, hasLength(2));
     expect(AppSettings.fromJson({'extraCharms': ['a']}),
         AppSettings.fromJson({'extraCharms': ['a']}));
     expect(AppSettings.fromJson({'extraCharms': ['a']}),

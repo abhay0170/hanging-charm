@@ -703,7 +703,7 @@ class RopeSim {
     for (var k = 0; k < m; k++) {
       // Fanned out to either side of the main charm, so none start stacked.
       final side = k.isEven ? 1 : -1;
-      final angle = (38.0 + 9.0 * (k ~/ 2)) * math.pi / 180;
+      final angle = 35.0 * math.pi / 180;
       final dx = side * extras[k].reach * math.sin(angle);
       final dy = extras[k].reach * math.cos(angle);
       _ex[k] = _eox[k] = ringX0 + dx;

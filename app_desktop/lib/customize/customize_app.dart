@@ -472,7 +472,7 @@ class _LibraryPage extends StatelessWidget {
               child: IconButton(
                 tooltip: roomOnRope
                     ? 'Also hang it on the rope'
-                    : 'The rope is full (${AppSettings.maxExtras} extra)',
+                    : 'The rope is full (${AppSettings.maxExtras + 1} charms)',
                 icon: const Icon(Icons.add_circle_outline, size: 20),
                 visualDensity: VisualDensity.compact,
                 onPressed: roomOnRope
@@ -496,8 +496,9 @@ class _LibraryPage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
                 'Your main charm, and up to ${AppSettings.maxExtras} more '
-                'hanging from the same ring. They swing, knock together and '
-                'can each be picked up. Press + on a charm below to add it.',
+                '(three in all) hanging from the same ring, one a little '
+                'lower than the next. They swing, knock together and can each '
+                'be picked up. Press + on a charm below to add it.',
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall

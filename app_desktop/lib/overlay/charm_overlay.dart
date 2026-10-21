@@ -15,6 +15,7 @@ import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
 import '../support/app_log.dart';
 import 'chime.dart';
+import 'cluster_layout.dart';
 import 'power_state.dart';
 import 'wiggle_detector.dart';
 import '../settings/settings_store.dart';
@@ -231,8 +232,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
 
   // ---- More charms on the rope ----
   //
-  // Up to four more charms hang from the same ring on short cords of
-  // different lengths. They knock together (and chime) and swing apart
+  // Up to two more charms (three in all) hang from the same ring on cords
+  // of different lengths, out to either side and each a little lower. They knock together (and chime) and swing apart
   // again, and any of them can be picked up and carried.
 
   List<CharmSprite> _extraSprites = const [];
@@ -261,21 +262,25 @@ class _CharmOverlayState extends State<CharmOverlay> {
       return;
     }
     final main = _sprite;
+    final mainHang = (main?.hangOffset.distance ?? 22) + ringRadius;
+    // Nearly the artwork's size: the corners of most charms are empty, but
+    // the charms themselves must not sit on top of each other.
+    final mainRadius = _hitRadius * 0.95;
+    final radii = [for (final s in _extraSprites) s.hitRadius * 0.95];
+    // Out to alternate sides, each a little lower than the last.
+    final reaches = ClusterLayout.reaches(
+        mainHang: mainHang, mainRadius: mainRadius, radii: radii);
     sim.setExtras(
       [
         for (var k = 0; k < _extraSprites.length; k++)
           ExtraCharm(
             mass: _extraSprites[k].charm.mass,
-            // A little smaller than the artwork, so corners may overlap.
-            radius: _extraSprites[k].hitRadius * 0.85,
-            reach: ringRadius +
-                _extraSprites[k].hangOffset.distance +
-                6 +
-                26.0 * k,
+            radius: radii[k],
+            reach: reaches[k],
           ),
       ],
-      primaryRadius: _hitRadius * 0.85,
-      primaryHangDistance: (main?.hangOffset.distance ?? 22) + ringRadius,
+      primaryRadius: mainRadius,
+      primaryHangDistance: mainHang,
     );
   }
 

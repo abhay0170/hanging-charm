@@ -108,9 +108,12 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   It plays through Windows' own `PlaySound` from memory, with no audio
   library. Each sound is 1.1 s, 44 KB, made when needed.
 - **Several charms on one rope** (Library → "On your rope", and the + on any
-  charm card): your main charm plus up to four more, all hung from the same
-  ring on short cords of different lengths. They start fanned out to either
-  side, swing apart and together, knock (and chime, if the chime is on) with
+  charm card): your main charm plus up to two more (three in all, which is
+  plenty), hung from the same ring on cords of different lengths. They are
+  laid out as a loose, staggered cluster: the first goes out to the right,
+  the second to the left and lower, each cord just long enough that no charm
+  touches another (sized from the artwork, with a 6 px gap), so they never
+  sit in a clump. They swing apart and together, knock (and chime, if the chime is on) with
   a sound by the lighter charm's weight, and each can be picked up and
   carried; let go and it swings back. The main charm carries the ring and is
   not pushed around by the extras, so its swing is unchanged. Extra charms
@@ -292,6 +295,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Edges on screen: left and right anchors hang 40 px in from the edge; dragging the left pin down 300 px moved it and saved its place (0.20 → 0.49) | ✅ |
 | Wall tests (6): without a wall it swings past the line, left and right walls stop the charm's edge on them, it comes back with less energy, extras stop at the wall and settle, removing the walls frees it (88 physics tests in all) · Settings tests cover the edge and pin place | ✅ |
 | Wall on screen (a hard throw into the edge), and the Where it hangs buttons in Customize | Not tested on screen (physics tested; settings changed through the settings file) |
+| Cluster layout on screen (bead with star and heart, clover with coin and horseshoe, gem with moon and leaf): staggered, one lower than the other, no overlap | ✅ |
+| Layout tests (4): sides alternate and each hangs lower; 200 random sets of sizes never overlap; small charms hang closer than big ones | ✅ |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

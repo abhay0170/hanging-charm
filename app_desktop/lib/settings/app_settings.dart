@@ -77,7 +77,7 @@ class AppSettings {
   /// More charms on the same rope, besides [charmId]; at most [maxExtras].
   final List<String> extraCharmIds;
 
-  static const int maxExtras = 4;
+  static const int maxExtras = 2;
 
   static List<String> _limited(List<String> ids) =>
       List.unmodifiable(ids.take(maxExtras));
