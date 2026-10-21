@@ -160,6 +160,21 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   They come from published calendars, and the 3-week window means a day's
   difference changes only the countdown. After 2030 the shelf stays empty
   until the app is updated with new dates.
+- **An icon and a name of its own**: the app icon is a gold bead on a
+  short chain, in every size Windows asks for (16 to 256 px), used by the
+  exe, the tray, the Customize window and the taskbar. The file properties
+  say Charm (not `charm_desktop` or the project's placeholder company), and
+  the version in About, in the exe and in `pubspec.yaml` is one number,
+  0.1.0, kept in step by a test.
+- **About: privacy and your data**: About now says in plain words what Charm
+  looks at (where the mouse is, and the active window's place if you hang it
+  there; never what is in a window, never the keyboard), that it has no code
+  that connects to the internet (checked: the app has no network calls), and
+  that usage stats send nothing. It shows where the data is (`%APPDATA%\Charm`),
+  has "Open the folder", and "Delete all my data…": after a confirmation it
+  deletes the charms you made and the log, puts every setting back to its
+  default, and stops Charm starting with Windows. Photos you used for charms
+  are never in those places, so they are never touched.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -323,6 +338,9 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Festivals on screen (Customize, 21 October 2026): "Diwali · in 18 days" shelf with the lantern, "Charm of the day"; all eight festival charms draw and hang in the Library | ✅ |
 | Festival tests (19): every festival has charms that exist in the catalog, every festival has dates for 2027 to 2030 in order, each in its own season, the Eids drift 8 to 13 days a year, the window opens 21 days before and closes 3 after, "in 18 days / tomorrow / today / yesterday", greeting for the day and a day either side, across the new year, real dates only, days counted by date, bad entries skipped, calendar end, charm of the day (same all day, varies, festival charm on its days, no festival charm on an ordinary day) · the all-charms draw test covers the eight new SVGs | ✅ |
 | Hanging a festival charm on screen from the Library (I checked how they look in the Library, not hanging) | Not checked |
+| Icon, About and delete on screen (on a throwaway profile, never yours): the new bead icon shows in the Customize title bar; About shows the privacy points, the data folder and both buttons; "Delete all my data" asks, then removes the charms folder and the log, resets the settings (charm back to the bead, chime off, extras gone) and says "Everything was deleted" | ✅ |
+| Identity tests (5): About's version equals pubspec's, the exe says Charm, the icon holds 16/24/32/48/64/128/256, deleting removes the charms folder and log and nothing else, and copes with nothing to delete | ✅ |
+| The icon in the taskbar, tray and Explorer (I saw it in the window's title bar) | Not looked at in those places |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

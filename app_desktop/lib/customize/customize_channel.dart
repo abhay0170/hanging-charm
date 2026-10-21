@@ -45,6 +45,15 @@ class CustomizeChannel {
     if (!sent) charmMissing.value = true;
   }
 
+  /// Asks the charm to delete everything it saved and start again from the
+  /// defaults.
+  Future<void> resetAll() async {
+    settings.value = const AppSettings(welcomeCompleted: true);
+    final sent =
+        await _toCharm({CustomizeProtocol.type: CustomizeProtocol.resetAll});
+    if (!sent) charmMissing.value = true;
+  }
+
   Future<bool> getLaunchAtLogin() async =>
       await _channel.invokeMethod<bool>('getLaunchAtLogin') ?? false;
 

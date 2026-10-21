@@ -13,6 +13,7 @@ import '../charms/user_charms.dart';
 import '../customize/protocol.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
+import '../settings/delete_data.dart';
 import '../support/app_log.dart';
 import 'chime.dart';
 import 'cluster_layout.dart';
@@ -484,6 +485,8 @@ class _CharmOverlayState extends State<CharmOverlay> {
     switch (message[CustomizeProtocol.type]) {
       case CustomizeProtocol.hello:
         _sendStateToCustomize();
+      case CustomizeProtocol.resetAll:
+        _resetEverything();
       case CustomizeProtocol.update:
         final changes = message[CustomizeProtocol.changes];
         if (changes is! Map) return;
@@ -495,6 +498,24 @@ class _CharmOverlayState extends State<CharmOverlay> {
         _settings.update((s) => UsageStats.withConsentApplied(
             AppSettings.fromJson({...s.toJson(), ...incoming})));
     }
+  }
+
+  /// "Delete all my data": the user's charms and the log go, the settings go
+  /// back to their defaults, and the charm no longer starts with Windows.
+  /// The photos they used for charms are not touched.
+  Future<void> _resetEverything() async {
+    final failed = await deleteUserData(
+      charms: UserCharms.standard().directory,
+      log: AppLog.file,
+    );
+    if (failed.isNotEmpty) {
+      AppLog.error('Could not delete ${failed.join(' and ')}', 'in use',
+          StackTrace.current);
+    }
+    await _channel.setLaunchAtLogin(false);
+    _catalog = widget.catalog;
+    _settings.update((_) => const AppSettings(welcomeCompleted: true));
+    await _settings.save();
   }
 
   void _sendStateToCustomize() {

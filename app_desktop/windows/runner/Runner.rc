@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.charmapp" "\0"
-            VALUE "FileDescription", "charm_desktop" "\0"
+            VALUE "CompanyName", "Charm" "\0"
+            VALUE "FileDescription", "Charm - a charm that hangs from your screen" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "charm_desktop" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.charmapp. All rights reserved." "\0"
+            VALUE "InternalName", "Charm" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Charm. All rights reserved." "\0"
             VALUE "OriginalFilename", "charm_desktop.exe" "\0"
-            VALUE "ProductName", "charm_desktop" "\0"
+            VALUE "ProductName", "Charm" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

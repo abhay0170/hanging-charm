@@ -11,6 +11,10 @@ abstract final class CustomizeProtocol {
   static const type = 'type';
   static const hello = 'hello';
   static const update = 'update';
+
+  /// Customize → overlay: delete everything saved and go back to the
+  /// defaults (settings, the user's charms, the log, launch at login).
+  static const resetAll = 'resetAll';
   static const changes = 'changes';
   static const state = 'state';
   static const settings = 'settings';

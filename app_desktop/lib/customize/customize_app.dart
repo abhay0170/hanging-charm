@@ -283,7 +283,8 @@ class _CustomizeHomeState extends State<_CustomizeHome> {
                           catalog: _catalog,
                           channel: channel),
                       2 => _SettingsPage(settings: settings, channel: channel),
-                      _ => const _AboutPage(),
+                      _ => _AboutPage(
+                          channel: channel, onReset: _refreshCatalog),
                     };
                   },
                 ),
@@ -1031,7 +1032,72 @@ class _SettingsPageState extends State<_SettingsPage> {
 // ---- About ----
 
 class _AboutPage extends StatelessWidget {
-  const _AboutPage();
+  const _AboutPage({required this.channel, required this.onReset});
+
+  final CustomizeChannel channel;
+
+  /// Called after everything is deleted, so the Library forgets the charms.
+  final VoidCallback onReset;
+
+  static const _privacyPoints = [
+    'Charm never connects to the internet. It has no code for it. Nothing '
+        'about you, your screen or your files leaves this computer.',
+    'It looks at where the mouse is (to know when you touch the charm) and, '
+        'if you hang it from your active window, where that window is. It '
+        'never reads what is in your windows, and never watches the keyboard.',
+    'Photos you use for a charm are not copied or changed. The charm keeps '
+        'its own small picture.',
+    'Usage stats are off. This version does not send anything even if you '
+        'turn them on in Settings.',
+  ];
+
+  Future<void> _openFolder(BuildContext context) async {
+    final directory = SettingsStore.defaultDirectory();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (!directory.existsSync()) {
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Nothing is saved yet, so there is no folder.')));
+        return;
+      }
+      await Process.run('explorer.exe', [directory.path]);
+    } on Object {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('The folder could not be opened.')));
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete all my data?'),
+        content: const Text(
+          'This puts every setting back to how it was when you first '
+          'installed Charm, deletes the charms you made, deletes the error '
+          'log, and stops Charm starting with Windows.\n\n'
+          'Photos you used for charms are not touched. This cannot be '
+          'undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete everything'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await channel.resetAll();
+    onReset();
+    messenger.showSnackBar(
+        const SnackBar(content: Text('Everything was deleted.')));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1071,6 +1137,48 @@ class _AboutPage extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        const _SectionTitle('Your privacy'),
+        ..._privacyPoints.map((point) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 3, right: 10),
+                    child: Icon(Icons.check_circle_outline, size: 18),
+                  ),
+                  Expanded(child: Text(point, style: text.bodyMedium)),
+                ],
+              ),
+            )),
+        const SizedBox(height: 24),
+        const _SectionTitle('Your data'),
+        Text(
+          'Everything Charm saves is in one folder on this computer: your '
+          'settings, the charms you made, and a small log of errors.',
+          style: text.bodyMedium,
+        ),
+        const SizedBox(height: 4),
+        SelectableText(SettingsStore.defaultDirectory().path,
+            style: text.bodySmall),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.folder_open, size: 18),
+              label: const Text('Open the folder'),
+              onPressed: () => _openFolder(context),
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: const Text('Delete all my data…'),
+              onPressed: () => _confirmDelete(context),
             ),
           ],
         ),
