@@ -95,6 +95,10 @@ class OverlayChannel {
   /// Starts or stops the stream of cursor positions ([onCursorMoved]).
   Future<void> setCursorStream(bool on) => _call('setCursorStream', on);
 
+  /// Plays a WAV file (as bytes) once. False if nothing could be played.
+  Future<bool> playSound(Uint8List wav) async =>
+      (await _call('playSound', wav)) == true;
+
   /// Battery and motion settings of the computer.
   Future<PowerState> getPowerState() async =>
       PowerState.fromChannel(await _call('getPowerState'));

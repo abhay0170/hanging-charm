@@ -5,6 +5,8 @@
 #include <flutter/flutter_view_controller.h>
 #include <flutter/method_channel.h>
 
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -77,6 +79,11 @@ class FlutterWindow : public Win32Window {
   // Tell Dart where the cursor is as it moves (for the mouse-wiggle
   // reaction). Off unless the user asked for that reaction.
   bool cursor_stream_ = false;
+
+  // Chimes being played. PlaySound reads from memory while it plays, so a
+  // sound stays in its slot until a later one takes the slot over.
+  std::array<std::vector<uint8_t>, 4> sound_buffers_;
+  size_t next_sound_ = 0;
   POINT last_cursor_ = {};
 
   // The project to run.

@@ -702,6 +702,10 @@ class _SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<_SettingsPage> {
   bool? _launchAtLogin;
 
+  /// The chime volume while the slider is being dragged; the setting itself
+  /// changes when it is let go (and the charm rings once at that volume).
+  double? _draggedVolume;
+
   @override
   void initState() {
     super.initState();
@@ -780,6 +784,24 @@ class _SettingsPageState extends State<_SettingsPage> {
               'save power: they show one still frame.'),
           value: widget.settings.animateCharms,
           onChanged: (v) => widget.channel.update({'animateCharms': v}),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+              'Chime volume: ${((_draggedVolume ?? widget.settings.soundVolume) * 100).round() == 0 ? 'off' : '${((_draggedVolume ?? widget.settings.soundVolume) * 100).round()}%'}'),
+          subtitle: const Text('A soft bell when the charm is knocked, thrown '
+              'or a locket opens. Off until you choose a volume. The sound '
+              'is made on this computer; nothing is downloaded.'),
+        ),
+        Slider(
+          value: _draggedVolume ?? widget.settings.soundVolume,
+          divisions: 10,
+          label: 'Volume',
+          onChanged: (v) => setState(() => _draggedVolume = v),
+          onChangeEnd: (v) {
+            setState(() => _draggedVolume = null);
+            widget.channel.update({'soundVolume': v});
+          },
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

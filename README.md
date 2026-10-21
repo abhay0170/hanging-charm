@@ -97,6 +97,16 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   hold still, a locket opens at once instead of turning over, and the mouse
   wiggle is not listened for. Touching and dragging the charm still works in
   full.
+- **Chime** (Settings → Chime volume; off until you choose a volume): a soft
+  bell when the charm is swept by the cursor, let go of at speed, or a
+  locket opens (and when you let go of the volume slider, so you hear it).
+  The sound is made in code, not from a file: four partials of a struck
+  bell, each fading at its own rate, over a pentatonic scale, so nothing is
+  downloaded or shipped and any two chimes sound fine together. A harder
+  strike is louder (25–100% of the volume), a heavy charm (mass 18 or more)
+  rings an octave lower, and there is at most one every quarter of a second.
+  It plays through Windows' own `PlaySound` from memory, with no audio
+  library. Each sound is 1.1 s, 44 KB, made when needed.
 - **Design your own** (My charms → Design your own): layers of photos,
   words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
@@ -243,6 +253,8 @@ gold bead and the reason goes to `%APPDATA%\Charm\charm.log`.
 | Battery saver on screen (laptop on battery with Battery Saver on): animated charm 5–7% → 1–3%, thrown swing 20–21% → 12–15%; frames confirmed at 30 a second with the saver on | ✅ |
 | Power state tests: native answer read, battery or Battery Saver means low power, odd answers mean plugged in, equality (4) · Settings tests cover the switch | ✅ |
 | Reduce Motion (animations off, instant locket flip, wiggle ignored) | Written, not tested: Windows' setting was on here and I didn't change it |
+| Chime on screen: sweeping the cursor over the charm made one chime; Windows' `PlaySound` accepted it (returned true). I can't hear it from here, so how it sounds is for your ears | ✅ played · 🔊 untested by ear |
+| Chime tests: valid 16-bit mono WAV of the right length, peak follows volume and never clips, starts and ends without a click, rings at the pitch asked for, strength by speed, heavy charms an octave lower (6) · Settings tests cover the volume | ✅ |
 | Designer tests: every base and border renders, clipping inside a base, click finds the top layer even when turned, placement stays in range, stickers and words draw (5) | ✅ |
 | On screen: starts still · near-miss cursor does nothing · let go at −204 px → +157, −126, +110, −89 · sweep 3× faster → 3.2× wider swing | ✅ |
 | Hangs from the active window: attaches exactly on its top edge, follows a 300 px move (swing 182 px), gentle 40 px move swings 37 px | ✅ |

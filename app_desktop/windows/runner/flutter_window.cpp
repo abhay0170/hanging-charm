@@ -2,6 +2,7 @@
 
 #include <flutter/standard_method_codec.h>
 #include <flutter_windows.h>
+#include <mmsystem.h>
 
 #include <algorithm>
 #include <cmath>
@@ -116,6 +117,19 @@ void FlutterWindow::HandleOverlayCall(
     }
     anchor_tracker_->SetFollowActiveWindow(*follow);
     result->Success();
+  } else if (method == "playSound") {
+    // A WAV file in memory, played once without waiting for it to end.
+    const auto* bytes = std::get_if<std::vector<uint8_t>>(call.arguments());
+    if (!bytes || bytes->size() < 44) {
+      result->Error("bad_args", "playSound expects WAV bytes");
+      return;
+    }
+    auto& slot = sound_buffers_[next_sound_++ % sound_buffers_.size()];
+    slot = *bytes;
+    const BOOL played =
+        PlaySoundW(reinterpret_cast<LPCWSTR>(slot.data()), nullptr,
+                   SND_MEMORY | SND_ASYNC | SND_NODEFAULT);
+    result->Success(flutter::EncodableValue(played != FALSE));
   } else if (method == "getPowerState") {
     // [on battery, Battery Saver on, Windows animations off]
     SYSTEM_POWER_STATUS power = {};

@@ -12,6 +12,8 @@ import '../charms/user_charms.dart';
 import '../customize/protocol.dart';
 import '../privacy/usage_stats.dart';
 import '../settings/app_settings.dart';
+import '../support/app_log.dart';
+import 'chime.dart';
 import 'power_state.dart';
 import 'wiggle_detector.dart';
 import '../settings/settings_store.dart';
@@ -123,6 +125,12 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (old?.followWindow != next.followWindow) {
       _channel.setFollowActive(!_benchSwing && next.followWindow);
     }
+    if (old != null &&
+        old.soundVolume != next.soundVolume &&
+        next.soundVolume > 0) {
+      _lastChimeAt = const Duration(seconds: -10);
+      _chime(800); // So you hear how loud it is.
+    }
     if (old?.reactToWiggle != next.reactToWiggle) {
       _wiggle = WiggleDetector();
       _channel.setCursorStream(next.reactToWiggle && !_power.reduceMotion);
@@ -174,6 +182,35 @@ class _CharmOverlayState extends State<CharmOverlay> {
     _sim?.charmMass = charm.mass;
     _wake();
     _animate();
+  }
+
+  // ---- Chime ----
+  //
+  // A soft bell when the charm is struck: swept by the cursor, let go of with
+  // some speed, or a locket opened. Off until a volume is chosen. A strike
+  // is louder the harder it is, a heavy charm rings an octave lower, and
+  // there is never more than one every quarter of a second.
+
+  static const Duration _chimeGap = Duration(milliseconds: 250);
+  Duration _lastChimeAt = const Duration(seconds: -10);
+  final _chimeRandom = math.Random();
+
+  void _chime(double speed) {
+    final volume = _settings.value.soundVolume;
+    if (volume <= 0) return;
+    final now = _clock.elapsed;
+    if (now - _lastChimeAt < _chimeGap) return;
+    _lastChimeAt = now;
+    final mass = _sprite?.charm.mass ?? 12;
+    final note = Chime.pitch(mass, _chimeRandom.nextInt(Chime.notes.length));
+    _channel
+        .playSound(Chime.wav(note, volume * Chime.strength(speed)))
+        .then((played) {
+      if (!played) {
+        AppLog.error('Could not play the chime', 'playSound returned false',
+            StackTrace.current);
+      }
+    });
   }
 
   // ---- Power and motion ----
@@ -237,6 +274,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (strength == null) return;
     final away = charmCenter(sim).dx >= cursor.dx ? 1.0 : -1.0;
     sim.nudge(away * (_wiggleSpeed + _wiggleExtra * strength), 0);
+    _chime(300 * strength);
     _wake();
   }
 
@@ -265,6 +303,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
   }
 
   void _turnLocket(bool open) {
+    if (open) _chime(350);
     _locketWantsOpen = open;
     if (_power.reduceMotion) {
       _locketProgress = open ? 1 : 0;
@@ -633,6 +672,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     // The charm hangs from above, so a sideways knock moves it far more than
     // an up or down one.
     sim.nudge(push.dx, push.dy * 0.3);
+    _chime(velocity.distance);
     _lastBrush = now;
     _wake();
   }
@@ -696,6 +736,7 @@ class _CharmOverlayState extends State<CharmOverlay> {
     if (_drag == _Drag.none) return;
     if (_drag == _Drag.charm) {
       _sim?.release();
+      if ((_sim?.charmSpeed ?? 0) > 150) _chime(_sim!.charmSpeed);
       // A quick press that hardly moved is a tap.
       if (e is PointerUpEvent &&
           _travel < 6 &&

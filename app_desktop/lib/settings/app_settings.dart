@@ -13,6 +13,7 @@ class AppSettings {
     this.animateCharms = true,
     this.reactToWiggle = false,
     this.savePower = true,
+    this.soundVolume = 0,
     this.windowAnchorFraction = defaultAnchorFraction,
     this.screenAnchorFraction = defaultAnchorFraction,
     this.welcomeCompleted = false,
@@ -50,6 +51,10 @@ class AppSettings {
   /// Windows' Battery Saver.
   final bool savePower;
 
+  /// How loud the chime is, 0 to 1. 0 is off, which is how it starts: a
+  /// sound from the desktop should be something you asked for.
+  final double soundVolume;
+
   /// How far along a window's top edge the pin sits, set by dragging it.
   final double windowAnchorFraction;
 
@@ -80,6 +85,7 @@ class AppSettings {
     bool? animateCharms,
     bool? reactToWiggle,
     bool? savePower,
+    double? soundVolume,
     double? windowAnchorFraction,
     double? screenAnchorFraction,
     bool? welcomeCompleted,
@@ -94,6 +100,7 @@ class AppSettings {
       animateCharms: animateCharms ?? this.animateCharms,
       reactToWiggle: reactToWiggle ?? this.reactToWiggle,
       savePower: savePower ?? this.savePower,
+      soundVolume: (soundVolume ?? this.soundVolume).clamp(0.0, 1.0).toDouble(),
       windowAnchorFraction: windowAnchorFraction ?? this.windowAnchorFraction,
       screenAnchorFraction: screenAnchorFraction ?? this.screenAnchorFraction,
       welcomeCompleted: welcomeCompleted ?? this.welcomeCompleted,
@@ -111,6 +118,7 @@ class AppSettings {
         'animateCharms': animateCharms,
         'reactToWiggle': reactToWiggle,
         'savePower': savePower,
+        'soundVolume': soundVolume,
         'windowAnchorFraction': windowAnchorFraction,
         'screenAnchorFraction': screenAnchorFraction,
         'welcomeCompleted': welcomeCompleted,
@@ -147,6 +155,7 @@ class AppSettings {
       animateCharms: read<bool>('animateCharms', d.animateCharms),
       reactToWiggle: read<bool>('reactToWiggle', d.reactToWiggle),
       savePower: read<bool>('savePower', d.savePower),
+      soundVolume: fraction('soundVolume', d.soundVolume),
       windowAnchorFraction:
           fraction('windowAnchorFraction', d.windowAnchorFraction),
       screenAnchorFraction:
@@ -168,6 +177,7 @@ class AppSettings {
       other.animateCharms == animateCharms &&
       other.reactToWiggle == reactToWiggle &&
       other.savePower == savePower &&
+      other.soundVolume == soundVolume &&
       other.windowAnchorFraction == windowAnchorFraction &&
       other.screenAnchorFraction == screenAnchorFraction &&
       other.welcomeCompleted == welcomeCompleted &&
@@ -183,6 +193,7 @@ class AppSettings {
       animateCharms,
       reactToWiggle,
       savePower,
+      soundVolume,
       windowAnchorFraction,
       screenAnchorFraction,
       welcomeCompleted,

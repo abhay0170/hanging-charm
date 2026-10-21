@@ -23,6 +23,7 @@ void main() {
     expect(store.value.animateCharms, isTrue);
     expect(store.value.reactToWiggle, isFalse);
     expect(store.value.savePower, isTrue);
+    expect(store.value.soundVolume, 0);
   });
 
   test('saves and reads back every setting', () async {
@@ -35,6 +36,7 @@ void main() {
           animateCharms: false,
           reactToWiggle: true,
           savePower: false,
+          soundVolume: 0.6,
           windowAnchorFraction: 0.31,
           screenAnchorFraction: 0.9,
         ));
@@ -46,6 +48,7 @@ void main() {
     expect(again.value.animateCharms, isFalse);
     expect(again.value.reactToWiggle, isTrue);
     expect(again.value.savePower, isFalse);
+    expect(again.value.soundVolume, 0.6);
   });
 
   test('a burst of changes becomes one write after a pause', () async {
