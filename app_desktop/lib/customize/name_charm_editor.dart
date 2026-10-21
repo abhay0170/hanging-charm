@@ -5,7 +5,7 @@ import '../charms/photo_charm.dart' show FrameFinish;
 import '../charms/text_charm.dart';
 import '../charms/user_charms.dart';
 
-/// Makes a charm from a name or short word, in English, Hindi or Tamil.
+/// Makes a charm from a name or short word, in English, Hindi, Tamil or Malayalam.
 /// Pops with the saved [Charm], or null if cancelled.
 class NameCharmEditor extends StatefulWidget {
   const NameCharmEditor({super.key, required this.userCharms});
@@ -27,7 +27,8 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
   void initState() {
     super.initState();
     _text.addListener(
-        () => setState(() => _design = _design.copyWith(text: _text.text)));
+      () => setState(() => _design = _design.copyWith(text: _text.text)),
+    );
   }
 
   @override
@@ -56,26 +57,29 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final indic = switch (NameCharmDesign.scriptOf(_design.displayText)) {
-      NameScript.devanagari || NameScript.tamil => true,
+      NameScript.devanagari || NameScript.tamil || NameScript.malayalam => true,
       _ => false,
     };
     final empty = _design.displayText.isEmpty;
 
-    Widget chips<T>(List<T> values, T selected, String Function(T) label,
-            void Function(T) pick,
-            {bool enabled = true}) =>
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final v in values)
-              ChoiceChip(
-                label: Text(label(v)),
-                selected: v == selected,
-                onSelected: enabled ? (_) => pick(v) : null,
-              ),
-          ],
-        );
+    Widget chips<T>(
+      List<T> values,
+      T selected,
+      String Function(T) label,
+      void Function(T) pick, {
+      bool enabled = true,
+    }) => Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final v in values)
+          ChoiceChip(
+            label: Text(label(v)),
+            selected: v == selected,
+            onSelected: enabled ? (_) => pick(v) : null,
+          ),
+      ],
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('New charm from a name')),
@@ -91,17 +95,21 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
                   const SizedBox(height: 24),
                   CustomPaint(
                     size: Size(
-                        _previewWidth,
-                        _previewWidth *
-                            _design.artBox.height /
-                            _design.artBox.width),
+                      _previewWidth,
+                      _previewWidth *
+                          _design.artBox.height /
+                          _design.artBox.width,
+                    ),
                     painter: _PreviewPainter(_design),
                   ),
                   const SizedBox(height: 16),
                   if (empty)
-                    Text('Type a name to see it here.',
-                        style: text.bodySmall
-                            ?.copyWith(color: scheme.onSurfaceVariant)),
+                    Text(
+                      'Type a name to see it here.',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -114,7 +122,8 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
                     autofocus: true,
                     maxLength: NameCharmDesign.maxLength,
                     style: const TextStyle(
-                        fontFamilyFallback: ['Nirmala UI', 'Segoe UI']),
+                      fontFamilyFallback: ['Nirmala UI', 'Segoe UI'],
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'Name or word',
                       hintText: 'English, हिन्दी or தமிழ்',
@@ -123,34 +132,50 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
                   const SizedBox(height: 12),
                   Text('Shape', style: text.titleSmall),
                   const SizedBox(height: 8),
-                  chips(NameShape.values, _design.shape, (s) => s.label,
-                      (s) => setState(() => _design = _design.copyWith(shape: s))),
+                  chips(
+                    NameShape.values,
+                    _design.shape,
+                    (s) => s.label,
+                    (s) => setState(() => _design = _design.copyWith(shape: s)),
+                  ),
                   const SizedBox(height: 20),
                   Text('Finish', style: text.titleSmall),
                   const SizedBox(height: 8),
-                  chips(FrameFinish.values, _design.finish, (f) => f.label,
-                      (f) => setState(() => _design = _design.copyWith(finish: f))),
+                  chips(
+                    FrameFinish.values,
+                    _design.finish,
+                    (f) => f.label,
+                    (f) =>
+                        setState(() => _design = _design.copyWith(finish: f)),
+                  ),
                   const SizedBox(height: 20),
                   Text('Lettering', style: text.titleSmall),
                   const SizedBox(height: 8),
-                  chips(NameFont.values, _design.font, (f) => f.label,
-                      (f) => setState(() => _design = _design.copyWith(font: f)),
-                      enabled: !indic),
+                  chips(
+                    NameFont.values,
+                    _design.font,
+                    (f) => f.label,
+                    (f) => setState(() => _design = _design.copyWith(font: f)),
+                    enabled: !indic,
+                  ),
                   if (indic)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                          'Hindi and Tamil are set in Nirmala UI, which '
-                          'shapes their letters properly.',
-                          style: text.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant)),
+                        'Hindi, Tamil and Malayalam are set in Nirmala UI, which '
+                        'shapes their letters properly.',
+                        style: text.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 28),
                   Row(
                     children: [
                       TextButton(
-                        onPressed:
-                            _saving ? null : () => Navigator.of(context).pop(),
+                        onPressed: _saving
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         child: const Text('Cancel'),
                       ),
                       const Spacer(),
@@ -159,8 +184,10 @@ class _NameCharmEditorState extends State<NameCharmEditor> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Icon(Icons.check),
                         label: const Text('Save and hang'),
                         onPressed: _saving || empty ? null : _save,

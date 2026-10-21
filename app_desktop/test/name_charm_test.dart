@@ -9,15 +9,16 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('knows Tamil, Hindi and English', () {
+  test('knows Tamil, Hindi, Malayalam and English', () {
     expect(NameCharmDesign.scriptOf('அம்மா'), NameScript.tamil);
     expect(NameCharmDesign.scriptOf('माँ'), NameScript.devanagari);
+    expect(NameCharmDesign.scriptOf('അമ്മ'), NameScript.malayalam);
     expect(NameCharmDesign.scriptOf('Abhay'), NameScript.latin);
     expect(NameCharmDesign.scriptOf('  2026 ♥ '), NameScript.other);
   });
 
-  test('Hindi and Tamil are set in a font that shapes them', () {
-    for (final text in ['अमृता', 'தமிழ்']) {
+  test('Hindi, Tamil and Malayalam are set in a font that shapes them', () {
+    for (final text in ['अमृता', 'தமிழ்', 'മലയാളം']) {
       expect(NameCharmDesign(text: text).fontFamilies.first, 'Nirmala UI');
     }
     expect(

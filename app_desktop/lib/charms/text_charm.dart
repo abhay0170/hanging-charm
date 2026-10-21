@@ -30,7 +30,7 @@ enum NameFont {
 }
 
 /// Writing systems the name charm knows how to set.
-enum NameScript { latin, devanagari, tamil, other }
+enum NameScript { latin, devanagari, tamil, malayalam, other }
 
 /// A name or short word made into a charm: letters on a nameplate bar, or
 /// stamped into a tag. The same drawing makes the editor's preview and the
@@ -69,13 +69,16 @@ class NameCharmDesign {
   String get displayText {
     final trimmed = text.trim();
     final chars = trimmed.characters;
-    return chars.length <= maxLength ? trimmed : chars.take(maxLength).toString();
+    return chars.length <= maxLength
+        ? trimmed
+        : chars.take(maxLength).toString();
   }
 
   /// The script of the first letter that belongs to one we know.
   static NameScript scriptOf(String text) {
     for (final rune in text.runes) {
       if (rune >= 0x0B80 && rune <= 0x0BFF) return NameScript.tamil;
+      if (rune >= 0x0D00 && rune <= 0x0D7F) return NameScript.malayalam;
       if (rune >= 0x0900 && rune <= 0x097F) return NameScript.devanagari;
       if ((rune >= 0x41 && rune <= 0x5A) ||
           (rune >= 0x61 && rune <= 0x7A) ||
@@ -86,21 +89,23 @@ class NameCharmDesign {
     return NameScript.other;
   }
 
-  /// Font families to try, in order. Hindi and Tamil need a font that
+  /// Font families to try, in order. Hindi, Tamil and Malayalam need a font that
   /// shapes them properly; Windows' Nirmala UI does, so it leads for those
   /// and is the fallback for everything else.
   List<String> get fontFamilies {
-    const indic = ['Nirmala UI', 'Mangal', 'Latha'];
+    const indic = ['Nirmala UI', 'Mangal', 'Latha', 'Kartika'];
     return switch (scriptOf(displayText)) {
-      NameScript.devanagari || NameScript.tamil => indic,
+      NameScript.devanagari ||
+      NameScript.tamil ||
+      NameScript.malayalam => indic,
       _ => [
-          ...switch (font) {
-            NameFont.classic => ['Georgia', 'Times New Roman'],
-            NameFont.modern => ['Segoe UI', 'Arial'],
-            NameFont.script => ['Segoe Script', 'Gabriola'],
-          },
-          ...indic,
-        ],
+        ...switch (font) {
+          NameFont.classic => ['Georgia', 'Times New Roman'],
+          NameFont.modern => ['Segoe UI', 'Arial'],
+          NameFont.script => ['Segoe Script', 'Gabriola'],
+        },
+        ...indic,
+      ],
     };
   }
 
@@ -111,45 +116,56 @@ class NameCharmDesign {
 
   /// The artwork's proportions.
   Size get artBox => switch (shape) {
-        NameShape.letters => const Size(160, _bail + 12 + 60 + _margin),
-        NameShape.barTag => const Size(160, _bail + 56 + _margin),
-        NameShape.roundTag || NameShape.heartTag =>
-          const Size(100, _bail + 92 + _margin),
-      };
+    NameShape.letters => const Size(160, _bail + 12 + 60 + _margin),
+    NameShape.barTag => const Size(160, _bail + 56 + _margin),
+    NameShape.roundTag ||
+    NameShape.heartTag => const Size(100, _bail + 92 + _margin),
+  };
 
   /// Width on screen when hung, in logical pixels; height follows.
   double get charmSize => switch (shape) {
-        NameShape.letters || NameShape.barTag => 64,
-        _ => 48,
-      };
+    NameShape.letters || NameShape.barTag => 64,
+    _ => 48,
+  };
 
   /// The ring goes through the top of the bail.
   Offset get hang => const Offset(0.5, 0);
 
   Rect get _body => Rect.fromLTRB(
-      _margin, _bail, artBox.width - _margin, artBox.height - _margin);
+    _margin,
+    _bail,
+    artBox.width - _margin,
+    artBox.height - _margin,
+  );
 
   /// Where the text must fit, inside the plate or tag.
   Rect get textArea => switch (shape) {
-        NameShape.letters => Rect.fromLTRB(
-            _margin, _bail + 12, artBox.width - _margin, artBox.height - _margin),
-        NameShape.barTag => _body.deflate(10),
-        NameShape.roundTag => Rect.fromCenter(
-            center: _body.center,
-            width: _body.width * 0.72,
-            height: _body.height * 0.5),
-        NameShape.heartTag => Rect.fromCenter(
-            center: _body.center.translate(0, -_body.height * 0.06),
-            width: _body.width * 0.62,
-            height: _body.height * 0.36),
-      };
+    NameShape.letters => Rect.fromLTRB(
+      _margin,
+      _bail + 12,
+      artBox.width - _margin,
+      artBox.height - _margin,
+    ),
+    NameShape.barTag => _body.deflate(10),
+    NameShape.roundTag => Rect.fromCenter(
+      center: _body.center,
+      width: _body.width * 0.72,
+      height: _body.height * 0.5,
+    ),
+    NameShape.heartTag => Rect.fromCenter(
+      center: _body.center.translate(0, -_body.height * 0.06),
+      width: _body.width * 0.62,
+      height: _body.height * 0.36,
+    ),
+  };
 
   Path _tagPath() {
     final r = _body;
     return switch (shape) {
       NameShape.roundTag => Path()..addOval(r),
-      NameShape.barTag => Path()
-        ..addRRect(RRect.fromRectAndRadius(r, Radius.circular(r.height / 2))),
+      NameShape.barTag =>
+        Path()
+          ..addRRect(RRect.fromRectAndRadius(r, Radius.circular(r.height / 2))),
       NameShape.heartTag => heartPath(r),
       NameShape.letters => Path(),
     };
@@ -160,22 +176,22 @@ class NameCharmDesign {
   TextPainter layoutText(Paint paint) {
     const probeSize = 100.0;
     TextPainter make(double fontSize) => TextPainter(
-          text: TextSpan(
-            text: displayText.isEmpty ? ' ' : displayText,
-            style: TextStyle(
-              fontFamily: fontFamilies.first,
-              fontFamilyFallback: fontFamilies.skip(1).toList(),
-              fontSize: fontSize,
-              fontWeight: shape == NameShape.letters
-                  ? FontWeight.w700
-                  : FontWeight.w600,
-              foreground: paint,
-              height: 1.15,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-          maxLines: 1,
-        )..layout();
+      text: TextSpan(
+        text: displayText.isEmpty ? ' ' : displayText,
+        style: TextStyle(
+          fontFamily: fontFamilies.first,
+          fontFamilyFallback: fontFamilies.skip(1).toList(),
+          fontSize: fontSize,
+          fontWeight: shape == NameShape.letters
+              ? FontWeight.w700
+              : FontWeight.w600,
+          foreground: paint,
+          height: 1.15,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
 
     final probe = make(probeSize);
     final area = textArea;
@@ -197,18 +213,23 @@ class NameCharmDesign {
     if (shape == NameShape.letters) {
       // A slim nameplate bar that the letters hang from.
       final bar = RRect.fromRectAndRadius(
-          Rect.fromLTWH(artBox.width * 0.2, _bail + 2, artBox.width * 0.6, 5),
-          const Radius.circular(2.5));
+        Rect.fromLTWH(artBox.width * 0.2, _bail + 2, artBox.width * 0.6, 5),
+        const Radius.circular(2.5),
+      );
       canvas.drawRRect(bar, metal);
       // Letters cast in the finish, outlined in its dark tone.
       final fill = layoutText(_metal(area));
-      final origin = Offset(area.center.dx - fill.width / 2,
-          area.center.dy - fill.height / 2);
+      final origin = Offset(
+        area.center.dx - fill.width / 2,
+        area.center.dy - fill.height / 2,
+      );
       fill.paint(canvas, origin);
-      final outline = layoutText(Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = finish.dark);
+      final outline = layoutText(
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = finish.dark,
+      );
       outline.paint(canvas, origin);
       fill.dispose();
       outline.dispose();
@@ -217,18 +238,23 @@ class NameCharmDesign {
       final tag = _tagPath();
       canvas.drawPath(tag, metal);
       canvas.drawPath(
-          tag,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = finish.dark);
+        tag,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = finish.dark,
+      );
       final stampColor = finish == FrameFinish.black
           ? const Color(0xFFE8D7A8)
           : finish.dark;
-      final light = layoutText(Paint()..color = finish.light.withValues(alpha: 0.8));
+      final light = layoutText(
+        Paint()..color = finish.light.withValues(alpha: 0.8),
+      );
       final stamp = layoutText(Paint()..color = stampColor);
-      final origin = Offset(area.center.dx - stamp.width / 2,
-          area.center.dy - stamp.height / 2);
+      final origin = Offset(
+        area.center.dx - stamp.width / 2,
+        area.center.dy - stamp.height / 2,
+      );
       // A lighter copy just below makes the letters look pressed in.
       light.paint(canvas, origin.translate(0, 0.8));
       stamp.paint(canvas, origin);

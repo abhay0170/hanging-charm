@@ -418,7 +418,7 @@ class _LibraryPage extends StatelessWidget {
             _NewCharmCard(
               icon: Icons.text_fields,
               title: 'New from a name',
-              caption: 'A name or word, in English, Hindi or Tamil.',
+              caption: 'A name or word, in English, Hindi, Tamil or Malayalam.',
               onTap: onNewFromName,
             ),
             _NewCharmCard(

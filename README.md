@@ -46,13 +46,13 @@ Then start `app_desktop/build/windows/x64/runner/Release/charm_desktop.exe`.
   each plus `my_charms.json`) and can be deleted from the Library. The
   original photo is never copied or changed.
 - **Charms from a name or word** (My charms → New from a name): English,
-  Hindi or Tamil, up to 14 letters. Shapes: letters on a nameplate bar, or
+  Hindi, Tamil or Malayalam, up to 14 letters. Shapes: letters on a nameplate bar, or
   a round, bar or heart tag with the name stamped in. Finishes: gold,
   silver, rose gold or black. Lettering: classic (Georgia), modern (Segoe UI)
-  or script (Segoe Script). Hindi and Tamil always use Nirmala UI, which
+  or script (Segoe Script). Hindi, Tamil and Malayalam always use Nirmala UI, which
   shapes those scripts properly. The text shrinks to fit its plate or tag.
 - **Design your own** (My charms → Design your own): layers of photos,
-  words (English, Hindi, Tamil) and stickers (18 Material symbols), each
+  words (English, Hindi, Tamil, Malayalam) and stickers (18 Material symbols), each
   moved by dragging, resized with the scroll wheel or a slider, turned,
   recoloured (metal, white, black, red, blue) and ordered forward or back.
   They sit on a base (none, circle, rounded square, heart, oval, bar) with a
