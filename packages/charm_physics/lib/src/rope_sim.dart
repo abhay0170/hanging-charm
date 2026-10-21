@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'extras.dart';
 import 'rope_style.dart';
 
 /// A rope hanging from an anchor with a charm on its free end.
@@ -86,6 +87,68 @@ class RopeSim {
 
   bool _grabbed = false;
 
+  /// The hand holds something: the main charm ([_grabbed]) or an extra.
+  bool _handActive = false;
+
+  // ---- Breeze ----
+
+  /// How far a steady push of the breeze would swing the rope, in radians.
+  /// Zero (the default) is no breeze at all: the rope only ever moves
+  /// because of the user.
+  double _windAngle = 0;
+  double _windTime = 0;
+
+  /// Breeze strength as the swing it makes, in radians. Gusts come and go
+  /// slowly (well below the rope's own swing rate, so they don't build up),
+  /// pushing both ways, and never swing it much past this. While it is on
+  /// the rope never falls asleep.
+  double get windAngle => _windAngle;
+  set windAngle(double radians) {
+    final next = radians.isFinite ? radians.clamp(0.0, 0.5).toDouble() : 0.0;
+    if (next == _windAngle) return;
+    _windAngle = next;
+    if (next > 0) _userInput = true;
+    wake();
+  }
+
+  /// A gust between -1 and 1: three slow waves that never line up for long.
+  static double gustAt(double seconds) {
+    const tau = 2 * math.pi;
+    return 0.5 * math.sin(tau * 0.13 * seconds + 0.7) +
+        0.3 * math.sin(tau * 0.21 * seconds + 2.1) +
+        0.2 * math.sin(tau * 0.34 * seconds + 4.0);
+  }
+
+  // ---- Extra charms ----
+
+  List<ExtraCharm> _extras = const [];
+  Float64List _ex = Float64List(0);
+  Float64List _ey = Float64List(0);
+  Float64List _eox = Float64List(0);
+  Float64List _eoy = Float64List(0);
+  int _grabbedExtra = -1;
+
+  // Charms resting on each other jitter a hair every step (gravity pulls them
+  // in, the contact pushes them out), so their stillness is judged by how far
+  // they have moved over a longer stretch instead of by one step.
+  Float64List _eRefX = Float64List(0);
+  Float64List _eRefY = Float64List(0);
+  int _extraTick = 0;
+  bool _extrasStill = true;
+  static const int _extraWindow = 60;
+  static const double _extraStillDistance = 0.3;
+  double _primaryRadius = 22;
+  double _primaryHang = 24;
+  final List<Collision> _collisions = [];
+
+  /// Pairs of charms currently touching, so a knock is reported when they
+  /// meet, not on every step they stay together.
+  final Set<int> _touching = {};
+
+  /// Fastest approach, in pixels per second, that is too gentle to count as
+  /// a knock.
+  static const double minKnockSpeed = 60;
+
   /// Where the hand is in the simulation, how far it moves per step, and for
   /// how many more steps, to reach the last pointer position.
   double _handX = 0, _handY = 0;
@@ -159,7 +222,7 @@ class RopeSim {
   double get energy => _kinetic + _potential;
 
   bool get asleep => _asleep;
-  bool get isGrabbed => _grabbed;
+  bool get isGrabbed => _handActive;
 
   double get restLength => _style.restLength;
 
@@ -195,6 +258,12 @@ class RopeSim {
       _ox[i] += dx;
       _oy[i] += dy;
     }
+    for (var k = 0; k < _extras.length; k++) {
+      _ex[k] += dx;
+      _ey[k] += dy;
+      _eox[k] += dx;
+      _eoy[k] += dy;
+    }
     _anchorX += dx;
     _anchorY += dy;
     _anchorTargetX += dx;
@@ -203,9 +272,13 @@ class RopeSim {
     _handY += dy;
   }
 
-  /// Starts holding the charm with the hand at ([x], [y]).
-  void grab(double x, double y) {
-    _grabbed = true;
+  /// Starts holding a charm with the hand at ([x], [y]): the main charm,
+  /// or extra number [charm] (1 and up).
+  void grab(double x, double y, {int charm = 0}) {
+    if (charm < 0 || charm > _extras.length) charm = 0;
+    _grabbed = charm == 0;
+    _grabbedExtra = charm - 1;
+    _handActive = true;
     _handX = x;
     _handY = y;
     _handVX = _handVY = 0;
@@ -217,7 +290,7 @@ class RopeSim {
   /// The hand moved to ([x], [y]). The charm travels there evenly over the
   /// time since the previous move, so it carries the hand's real speed.
   void dragTo(double x, double y) {
-    if (!_grabbed) return;
+    if (!_handActive) return;
     // Several moves within one frame share that frame's time.
     final steps = _stepsSinceDrag == 0
         ? _lastHandSteps
@@ -233,14 +306,21 @@ class RopeSim {
   /// Lets go; the charm keeps the velocity the hand gave it, no more.
   void release() {
     _grabbed = false;
+    _grabbedExtra = -1;
+    _handActive = false;
     wake();
   }
 
   /// Adds a velocity, in logical pixels per second, to the charm.
-  void nudge(double vx, double vy) {
-    final n = _px.length - 1;
-    _ox[n] -= vx * dt;
-    _oy[n] -= vy * dt;
+  void nudge(double vx, double vy, {int charm = 0}) {
+    if (charm > 0 && charm <= _extras.length) {
+      _eox[charm - 1] -= vx * dt;
+      _eoy[charm - 1] -= vy * dt;
+    } else {
+      final n = _px.length - 1;
+      _ox[n] -= vx * dt;
+      _oy[n] -= vy * dt;
+    }
     _userInput = true;
     wake();
   }
@@ -297,7 +377,11 @@ class RopeSim {
     _px[0] = _ox[0] = _anchorX;
     _py[0] = _oy[0] = _anchorY;
 
-    if (_grabbed) _moveHand();
+    if (_handActive) _moveHand();
+    _windTime += dt;
+    final windStep = _windAngle == 0
+        ? 0.0
+        : _style.gravity * math.tan(_windAngle) * gustAt(_windTime) * dt * dt;
 
     for (var i = 1; i <= n; i++) {
       if (i == n && _grabbed) {
@@ -320,7 +404,7 @@ class RopeSim {
       }
       _ox[i] = _px[i];
       _oy[i] = _py[i];
-      _px[i] += vx;
+      _px[i] += vx + windStep;
       _py[i] += vy + gravityStep;
     }
 
@@ -328,7 +412,12 @@ class RopeSim {
     _solveConstraints();
     _attachToAnchor();
     _tightenRope();
-    _limitEnergy(userInput: _grabbed || anchorMoving || _userInput);
+    if (_extras.isNotEmpty) _stepExtras(windStep);
+    _limitEnergy(
+        userInput: _handActive ||
+            anchorMoving ||
+            _userInput ||
+            _windAngle > 0);
     _userInput = false;
     _updateSleep();
   }
@@ -478,7 +567,7 @@ class RopeSim {
   }
 
   void _updateSleep() {
-    if (_grabbed || anchorMoving) {
+    if (_handActive || anchorMoving || _windAngle > 0) {
       _stillSteps = 0;
       return;
     }
@@ -489,7 +578,7 @@ class RopeSim {
       final m = dx * dx + dy * dy;
       if (m > maxMoveSq) maxMoveSq = m;
     }
-    if (maxMoveSq < sleepThreshold * sleepThreshold) {
+    if (maxMoveSq < sleepThreshold * sleepThreshold && _extrasStill) {
       _stillSteps++;
       if (_stillSteps >= sleepAfterSeconds * stepsPerSecond) {
         _asleep = true;
@@ -498,11 +587,228 @@ class RopeSim {
           _ox[i] = _px[i];
           _oy[i] = _py[i];
         }
+        for (var k = 0; k < _extras.length; k++) {
+          _eox[k] = _ex[k];
+          _eoy[k] = _ey[k];
+        }
         _measureEnergy();
         _energyCap = energy;
       }
     } else {
       _stillSteps = 0;
+    }
+  }
+
+  // ---- Extra charms: more hung from the same ring ----
+
+  int get extraCount => _extras.length;
+
+  /// Centre of extra charm [k] (0 is the first extra).
+  double extraX(int k) => _ex[k];
+  double extraY(int k) => _ey[k];
+
+  /// The ring the extras hang from: the main charm's hang point, a little
+  /// way up the rope from the charm's centre.
+  double get ringX => _px[_px.length - 1] - _lastDirX * _primaryHang;
+  double get ringY => _py[_py.length - 1] - _lastDirY * _primaryHang;
+
+  /// Where the main charm's centre is: the end of the rope.
+  double get charmCenterX => _px[_px.length - 1];
+  double get charmCenterY => _py[_py.length - 1];
+
+  double get _lastDirX {
+    final n = _px.length - 1;
+    final dx = _px[n] - _px[n - 1], dy = _py[n] - _py[n - 1];
+    final d = math.sqrt(dx * dx + dy * dy);
+    return d == 0 ? 0 : dx / d;
+  }
+
+  double get _lastDirY {
+    final n = _px.length - 1;
+    final dx = _px[n] - _px[n - 1], dy = _py[n] - _py[n - 1];
+    final d = math.sqrt(dx * dx + dy * dy);
+    return d == 0 ? 1 : dy / d;
+  }
+
+  /// Hangs [extras] from the ring, replacing any there. The main charm is
+  /// [primaryRadius] wide (half) with its centre [primaryHangDistance] below
+  /// the ring. Extras start hanging taut, alternately a little to the right
+  /// and left so that any that overlap fan out instead of stacking.
+  void setExtras(List<ExtraCharm> extras,
+      {double primaryRadius = 22, double primaryHangDistance = 24}) {
+    _extras = List.unmodifiable(extras);
+    _primaryRadius = primaryRadius;
+    _primaryHang = primaryHangDistance;
+    final m = extras.length;
+    _ex = Float64List(m);
+    _ey = Float64List(m);
+    _eox = Float64List(m);
+    _eoy = Float64List(m);
+    _grabbedExtra = -1;
+    final ringX0 = ringX, ringY0 = ringY;
+    for (var k = 0; k < m; k++) {
+      // Fanned out to either side of the main charm, so none start stacked.
+      final side = k.isEven ? 1 : -1;
+      final angle = (38.0 + 9.0 * (k ~/ 2)) * math.pi / 180;
+      final dx = side * extras[k].reach * math.sin(angle);
+      final dy = extras[k].reach * math.cos(angle);
+      _ex[k] = _eox[k] = ringX0 + dx;
+      _ey[k] = _eoy[k] = ringY0 + dy;
+    }
+    _eRefX = Float64List.fromList(_ex);
+    _eRefY = Float64List.fromList(_ey);
+    _extraTick = 0;
+    _extrasStill = m == 0;
+    _collisions.clear();
+    _touching.clear();
+    wake();
+  }
+
+  /// The knocks since the last call, then forgotten.
+  List<Collision> takeCollisions() {
+    if (_collisions.isEmpty) return const [];
+    final out = List<Collision>.of(_collisions);
+    _collisions.clear();
+    return out;
+  }
+
+  void _stepExtras(double windStep) {
+    final m = _extras.length;
+    final n = _px.length - 1;
+    final damping = _style.damping;
+    final gravityStep = _style.gravity * dt * dt;
+    final frictionStep = _style.friction * dt * dt;
+    const maxStep = maxSpeed * dt;
+
+    for (var k = 0; k < m; k++) {
+      if (k == _grabbedExtra) {
+        _eox[k] = _ex[k];
+        _eoy[k] = _ey[k];
+        _ex[k] = _handX;
+        _ey[k] = _handY;
+        continue;
+      }
+      var vx = (_ex[k] - _eox[k]) * damping;
+      var vy = (_ey[k] - _eoy[k]) * damping;
+      final speed = math.sqrt(vx * vx + vy * vy);
+      if (speed > maxStep) {
+        vx *= maxStep / speed;
+        vy *= maxStep / speed;
+      } else if (speed > 0) {
+        final slowed = math.max(0.0, speed - frictionStep) / speed;
+        vx *= slowed;
+        vy *= slowed;
+      }
+      _eox[k] = _ex[k];
+      _eoy[k] = _ey[k];
+      _ex[k] += vx + windStep;
+      _ey[k] += vy + gravityStep;
+    }
+
+    for (var it = 0; it < 8; it++) {
+      // Each cord only stops its charm going further than its reach.
+      final hubX = ringX, hubY = ringY;
+      for (var k = 0; k < m; k++) {
+        final dx = _ex[k] - hubX;
+        final dy = _ey[k] - hubY;
+        final d = math.sqrt(dx * dx + dy * dy);
+        final reach = _extras[k].reach;
+        if (d <= reach || d == 0) continue;
+        final wE = k == _grabbedExtra ? 0.0 : 1 / _extras[k].mass;
+        // The main charm carries the ring and is not moved by the extras,
+        // except by one being carried by hand.
+        final wH = (k == _grabbedExtra && !_grabbed) ? _invMass[n] : 0.0;
+        final w = wE + wH;
+        if (w == 0) continue;
+        final c = (d - reach) / (d * w);
+        _ex[k] -= dx * c * wE;
+        _ey[k] -= dy * c * wE;
+        _px[n] += dx * c * wH;
+        _py[n] += dy * c * wH;
+      }
+      _collide(record: it == 0);
+    }
+
+    if (++_extraTick >= _extraWindow) {
+      _extraTick = 0;
+      var still = true;
+      for (var k = 0; k < m; k++) {
+        final dx = _ex[k] - _eRefX[k], dy = _ey[k] - _eRefY[k];
+        if (dx * dx + dy * dy > _extraStillDistance * _extraStillDistance) {
+          still = false;
+        }
+        _eRefX[k] = _ex[k];
+        _eRefY[k] = _ey[k];
+      }
+      _extrasStill = still;
+    }
+  }
+
+  /// Keeps charms from overlapping, and notes the ones that knocked.
+  void _collide({required bool record}) {
+    final m = _extras.length;
+    // Index 0 is the main charm; its centre is carried by the ring.
+    double cx(int i) => i == 0 ? charmCenterX : _ex[i - 1];
+    double cy(int i) => i == 0 ? charmCenterY : _ey[i - 1];
+    double radius(int i) => i == 0 ? _primaryRadius : _extras[i - 1].radius;
+    double invMass(int i) {
+      // The main charm is held by the rope, so it pushes the others and is
+      // not pushed back.
+      if (i == 0) return 0.0;
+      return (i - 1) == _grabbedExtra ? 0.0 : 1 / _extras[i - 1].mass;
+    }
+
+    void move(int i, double dx, double dy) {
+      // Part of the push is kept out of the speed, so a knock is dull
+      // rather than bouncy.
+      if (i == 0) {
+        final n = _px.length - 1;
+        _px[n] += dx;
+        _py[n] += dy;
+        _ox[n] += dx * 0.7;
+        _oy[n] += dy * 0.7;
+      } else {
+        _ex[i - 1] += dx;
+        _ey[i - 1] += dy;
+        _eox[i - 1] += dx * 0.7;
+        _eoy[i - 1] += dy * 0.7;
+      }
+    }
+
+    double vx(int i) => i == 0
+        ? (_px[_px.length - 1] - _ox[_px.length - 1]) / dt
+        : (_ex[i - 1] - _eox[i - 1]) / dt;
+    double vy(int i) => i == 0
+        ? (_py[_px.length - 1] - _oy[_px.length - 1]) / dt
+        : (_ey[i - 1] - _eoy[i - 1]) / dt;
+
+    for (var a = 0; a <= m; a++) {
+      for (var b = a + 1; b <= m; b++) {
+        final dx = cx(b) - cx(a);
+        final dy = cy(b) - cy(a);
+        final d = math.sqrt(dx * dx + dy * dy);
+        final minimum = radius(a) + radius(b);
+        final key = a * 8 + b;
+        if (d >= minimum) {
+          if (record && d > minimum + 2) _touching.remove(key);
+          continue;
+        }
+        // Exactly on top of each other: push apart sideways.
+        final nx = d < 1e-9 ? 1.0 : dx / d;
+        final ny = d < 1e-9 ? 0.0 : dy / d;
+        final wA = invMass(a), wB = invMass(b);
+        final w = wA + wB;
+        if (w == 0) continue;
+        if (record && _touching.add(key)) {
+          final closing = (vx(a) - vx(b)) * nx + (vy(a) - vy(b)) * ny;
+          if (closing > minKnockSpeed && _collisions.length < 8) {
+            _collisions.add(Collision(a, b, closing));
+          }
+        }
+        final push = minimum - d;
+        move(a, -nx * push * wA / w, -ny * push * wA / w);
+        move(b, nx * push * wB / w, ny * push * wB / w);
+      }
     }
   }
 
